@@ -1,0 +1,30 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+@theme {
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #e5e5e5;
+  --color-text: #171717;
+  --color-muted: #737373;
+  --color-accent: #2563eb;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
