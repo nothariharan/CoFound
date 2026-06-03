@@ -5,6 +5,10 @@ The Startup Founder Operating System — a persistent AI workspace that takes a 
 **Hackathon:** Google Cloud Rapid Agent Hackathon · MongoDB Track  
 **Stack:** Gemini 2.5 Pro · MongoDB Atlas · Google Cloud Agent Builder
 
+## Team Parallel Build
+
+Building with 3 people? Start here: **[team/README.md](team/README.md)**
+
 ## Quick Start
 
 ### Prerequisites
@@ -50,6 +54,7 @@ Copy `.env.example` to `.env` and fill in credentials as integrations are wired 
 cofounder/
 ├── backend/          # FastAPI + multi-agent system
 ├── frontend/         # Vite + React + React Flow canvas
+├── team/             # 3-person parallel build guide (roles, branches, criteria)
 ├── scripts/          # Atlas seeding and index setup
 ├── cloud_run/        # Export zip generation (Day 10)
 └── docs/             # Architecture and demo docs
