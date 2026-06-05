@@ -4,6 +4,8 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.agents import router as agents_router
+from api.export import router as export_router
 from api.feed import router as feed_router
 from api.workspace import router as workspace_router
 
@@ -26,6 +28,8 @@ app.add_middleware(
 
 app.include_router(workspace_router, prefix="/api")
 app.include_router(feed_router, prefix="/api")
+app.include_router(agents_router, prefix="/api")
+app.include_router(export_router, prefix="/api")
 
 
 @app.get("/health")
