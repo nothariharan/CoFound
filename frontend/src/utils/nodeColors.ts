@@ -1,10 +1,10 @@
-import type { NodeStatus } from '../types'
+import type { NodeStatus } from '@/types'
 
 export const statusColors: Record<NodeStatus, string> = {
-  validated: '#16a34a',
-  needs_work: '#ca8a04',
-  blocking: '#dc2626',
-  locked: '#a3a3a3',
+  validated: 'var(--status-validated)',
+  needs_work: 'var(--status-needs-work)',
+  blocking: 'var(--status-blocking)',
+  locked: 'var(--status-locked)',
 }
 
 export const statusLabels: Record<NodeStatus, string> = {
@@ -12,6 +12,13 @@ export const statusLabels: Record<NodeStatus, string> = {
   needs_work: 'Needs Work',
   blocking: 'Blocking',
   locked: 'Locked',
+}
+
+export const statusBadgeVariant: Record<NodeStatus, 'success' | 'warning' | 'destructive' | 'secondary'> = {
+  validated: 'success',
+  needs_work: 'warning',
+  blocking: 'destructive',
+  locked: 'secondary',
 }
 
 export function getStatusColor(status: NodeStatus): string {

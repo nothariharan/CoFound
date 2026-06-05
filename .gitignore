@@ -23,3 +23,6 @@ Thumbs.db
 # Build
 *.zip
 cloud_run/__pycache__/
+
+# Local-only agent instructions (never commit)
+LOCAL_AGENT_RULES.md

@@ -1,27 +1,45 @@
-import { useWorkspaceStore } from '../../store/workspaceStore'
+import { Bell, Clock } from 'lucide-react'
+import { useWorkspaceStore } from '@/store/workspaceStore'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export function TopBar() {
-  const { workspace } = useWorkspaceStore()
-  const score = workspace?.nodes.length
-    ? Math.round(
-        workspace.nodes.reduce((sum, n) => sum + n.confidence, 0) /
-          workspace.nodes.length,
-      )
-    : 0
+  const { workspace, healthScore } = useWorkspaceStore()
+  const score = healthScore || (workspace?.nodes.length
+    ? Math.round(workspace.nodes.reduce((sum, n) => sum + n.confidence, 0) / workspace.nodes.length)
+    : 0)
+
+  const healthColor =
+    score >= 70 ? 'bg-status-validated' : score >= 50 ? 'bg-status-needs-work' : 'bg-status-blocking'
 
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-[#e5e5e5] bg-white px-4">
+    <header className="shell-panel flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-4">
       <div className="flex items-center gap-3">
-        <span className="text-sm font-semibold text-[#171717]">CoFounder</span>
-        <span className="text-[#e5e5e5]">·</span>
-        <span className="text-sm text-[#737373]">
-          {workspace?.workspace_name ?? 'Workspace'}
-        </span>
+        <span className="text-sm font-semibold text-foreground">CoFound</span>
+        <span className="text-border">·</span>
+        <span className="text-sm text-muted-foreground">{workspace?.workspace_name ?? 'Workspace'}</span>
       </div>
+
       <div className="flex items-center gap-4">
-        <span className="text-xs text-[#737373]">
-          Health <span className="font-medium text-[#171717]">{score}/100</span>
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Startup Health</span>
+          <span className="text-sm font-medium tabular-nums text-foreground">{score}</span>
+          <span className="text-xs text-muted-foreground">/ 100</span>
+          <span className={cn('size-2 rounded-full', healthColor)} aria-label="Health status" />
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label="Notifications">
+            <Bell className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" aria-label="History">
+            <Clock className="size-4" />
+          </Button>
+          <Avatar className="size-7">
+            <AvatarFallback className="bg-surface-elevated text-[10px] text-foreground">AK</AvatarFallback>
+          </Avatar>
+        </div>
       </div>
     </header>
   )

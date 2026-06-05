@@ -176,9 +176,10 @@ app.include_router(integrations_router, prefix="/api")
 
 - Clean, minimal — no gradients, no emojis
 - Lucide React icons only
-- Colors: `#FAFAFA` bg, `#171717` text, `#2563EB` accent, `#E5E5E5` borders
-- Inter font
+- **Dark mode (default):** warm neutral palette — `#1F1E1D` bg, `#EDEDEB` text, `#C96442` accent, `#3A3936` borders
+- Inter font, semantic CSS tokens via Tailwind/shadcn
 - Single workspace — no page routing
+- GSAP animations with `prefers-reduced-motion` support
 
 ---
 

@@ -1,10 +1,19 @@
+import { cn } from '@/lib/utils'
+
 interface AgentChipProps {
   label: string
+  active?: boolean
 }
 
-export function AgentChip({ label }: AgentChipProps) {
+export function AgentChip({ label, active = false }: AgentChipProps) {
   return (
-    <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full border border-[#2563eb] bg-white text-[10px] font-medium text-[#2563eb]">
+    <span
+      className={cn(
+        'absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full border border-primary bg-card text-[10px] font-medium text-primary',
+        active && 'agent-chip-active',
+      )}
+      aria-label={`Agent ${label} active`}
+    >
       {label}
     </span>
   )

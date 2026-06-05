@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import type { FeedMessage } from '../types'
+import type { FeedMessage } from '@/types'
+import { USE_MOCK } from '@/config/env'
+import { subscribeFeed } from '@/mock/demoEngine'
 
 export function useSSEFeed(workspaceId?: string) {
   const [messages, setMessages] = useState<FeedMessage[]>([])
@@ -7,10 +9,19 @@ export function useSSEFeed(workspaceId?: string) {
   const sourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
-    const url = workspaceId
-      ? `/api/feed?workspace_id=${workspaceId}`
-      : '/api/feed'
+    if (USE_MOCK) {
+      setConnected(true)
+      const unsub = subscribeFeed((msg) => {
+        if (msg.type === 'ping' || !msg.text) return
+        setMessages((prev) => [...prev, msg])
+      })
+      return () => {
+        unsub()
+        setConnected(false)
+      }
+    }
 
+    const url = workspaceId ? `/api/feed?workspace_id=${workspaceId}` : '/api/feed'
     const source = new EventSource(url)
     sourceRef.current = source
 

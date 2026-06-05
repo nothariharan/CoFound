@@ -1,4 +1,7 @@
-import { getRingColor } from '../../utils/nodeColors'
+import { useEffect, useRef } from 'react'
+import { gsap } from '@/lib/gsap'
+import { getRingColor } from '@/utils/nodeColors'
+import { createMotionMatchMedia, motionDuration } from '@/lib/gsap'
 
 interface ConfidenceRingProps {
   confidence: number
@@ -10,20 +13,41 @@ export function ConfidenceRing({ confidence, status, size = 44 }: ConfidenceRing
   const stroke = 3
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
-  const offset = circumference - (confidence / 100) * circumference
   const color = getRingColor(confidence, status)
+  const ringRef = useRef<SVGCircleElement>(null)
+  const prevConfidence = useRef(confidence)
+
+  useEffect(() => {
+    if (!ringRef.current || prevConfidence.current === confidence) return
+
+    const mm = createMotionMatchMedia()
+    mm.add(({ reduceMotion }) => {
+      const offset = circumference - (confidence / 100) * circumference
+      gsap.to(ringRef.current, {
+        strokeDashoffset: offset,
+        duration: motionDuration(reduceMotion, 0.6),
+        ease: 'power2.out',
+      })
+    })
+
+    prevConfidence.current = confidence
+    return () => mm.revert()
+  }, [confidence, circumference])
+
+  const offset = circumference - (confidence / 100) * circumference
 
   return (
-    <svg width={size} height={size} className="shrink-0">
+    <svg width={size} height={size} className="shrink-0" aria-label={`Confidence ${Math.round(confidence)}%`}>
       <circle
         cx={size / 2}
         cy={size / 2}
         r={radius}
         fill="none"
-        stroke="#e5e5e5"
+        stroke="var(--border)"
         strokeWidth={stroke}
       />
       <circle
+        ref={ringRef}
         cx={size / 2}
         cy={size / 2}
         r={radius}
@@ -40,9 +64,10 @@ export function ConfidenceRing({ confidence, status, size = 44 }: ConfidenceRing
         y="50%"
         dominantBaseline="central"
         textAnchor="middle"
-        fill="#171717"
+        fill="var(--foreground)"
         fontSize="11"
         fontWeight="500"
+        className="tabular-nums"
       >
         {Math.round(confidence)}
       </text>

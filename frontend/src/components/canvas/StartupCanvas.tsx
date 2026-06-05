@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import {
   ReactFlow,
   Background,
@@ -6,56 +6,91 @@ import {
   type Node,
   type Edge,
 } from '@xyflow/react'
-import { useWorkspaceStore } from '../../store/workspaceStore'
-import { NodeCard, type NodeCardData } from './NodeCard'
+import { useWorkspaceStore } from '@/store/workspaceStore'
+import { NodeCard, type NodeCardData } from '@/components/canvas/NodeCard'
+import { NODE_EDGES, getNodePosition } from '@/utils/canvasLayout'
+import { useCanvasUnlockAnimation } from '@/hooks/useAnimations'
 
 const nodeTypes = { nodeCard: NodeCard }
 
 export function StartupCanvas() {
-  const { workspace, selectedNodeId, setSelectedNodeId } = useWorkspaceStore()
+  const { workspace, selectedNodeId, setSelectedNodeId, demoStage } = useWorkspaceStore()
+  const canvasRef = useCanvasUnlockAnimation(
+    demoStage >= 2 ? ['node-audience', 'node-market', 'node-competitors'] : [],
+  )
 
   const onSelect = useCallback(
     (id: string) => setSelectedNodeId(id),
     [setSelectedNodeId],
   )
 
+  const prevNodeCount = useRef(0)
+
   const { nodes, edges } = useMemo(() => {
     if (!workspace) return { nodes: [], edges: [] as Edge[] }
 
-    const flowNodes: Node[] = workspace.nodes.map((node, i) => ({
-      id: node.node_id,
-      type: 'nodeCard',
-      position: { x: 280, y: i * 180 + 40 },
-      data: {
-        node,
-        onSelect,
-        selected: node.node_id === selectedNodeId,
-      } satisfies NodeCardData,
+    const nodeIds = new Set(workspace.nodes.map((n) => n.node_id))
+
+    const flowNodes: Node[] = workspace.nodes.map((node) => {
+      const pos = getNodePosition(node.node_id)
+      return {
+        id: node.node_id,
+        type: 'nodeCard',
+        position: pos,
+        data: {
+          node,
+          onSelect,
+          selected: node.node_id === selectedNodeId,
+        } satisfies NodeCardData,
+      }
+    })
+
+    const flowEdges: Edge[] = NODE_EDGES.filter(
+      (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
+    ).map((edge) => ({
+      id: `e-${edge.source}-${edge.target}`,
+      source: edge.source,
+      target: edge.target,
+      style: { stroke: 'var(--border)', strokeWidth: 1 },
+      animated: workspace.nodes.find((n) => n.node_id === edge.target)?.active_agents.length ? true : false,
     }))
 
-    const flowEdges: Edge[] = workspace.nodes.slice(1).map((node, i) => ({
-      id: `e-${workspace.nodes[i].node_id}-${node.node_id}`,
-      source: workspace.nodes[i].node_id,
-      target: node.node_id,
-      style: { stroke: '#e5e5e5', strokeWidth: 1 },
-    }))
-
+    prevNodeCount.current = workspace.nodes.length
     return { nodes: flowNodes, edges: flowEdges }
   }, [workspace, selectedNodeId, onSelect])
 
   return (
-    <div className="h-full w-full bg-[#fafafa]">
+    <div ref={canvasRef} className="relative h-full w-full bg-background">
+      {workspace && (
+        <div className="absolute left-6 top-6 z-10 max-w-md">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{workspace.workspace_name}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {workspace.nodes.find((n) => n.type === 'core_idea')?.summary ?? 'AI copilot for busy restaurant owners'}
+          </p>
+          <div className="mt-2 inline-flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground">
+            Idea confidence{' '}
+            <span className="font-medium tabular-nums text-foreground">
+              {workspace.nodes.find((n) => n.type === 'core_idea')?.confidence ?? 0}%
+            </span>
+          </div>
+        </div>
+      )}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         fitView
-        minZoom={0.5}
+        fitViewOptions={{ padding: 0.3 }}
+        minZoom={0.4}
         maxZoom={1.5}
         proOptions={{ hideAttribution: true }}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        panOnScroll
       >
-        <Background color="#e5e5e5" gap={24} size={1} />
-        <Controls showInteractive={false} className="!border-[#e5e5e5] !shadow-none" />
+        <Background color="var(--border)" gap={24} size={1} />
+        <Controls showInteractive={false} />
       </ReactFlow>
     </div>
   )

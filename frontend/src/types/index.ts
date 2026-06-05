@@ -31,6 +31,8 @@ export interface GraphNode {
   summary: string
   last_updated: string
   active_agents: string[]
+  pain_points?: { label: string; percentage: number }[]
+  overview?: string
 }
 
 export interface Workspace {
@@ -41,7 +43,9 @@ export interface Workspace {
 
 export interface FeedMessage {
   text: string
-  type: 'info' | 'ping' | 'error'
+  type: 'info' | 'critique' | 'error' | 'done' | 'ping'
+  node_id?: string
+  score?: number
 }
 
 export type AppPhase = 'intake' | 'dashboard'
@@ -50,4 +54,45 @@ export interface TodayPriority {
   action: string
   reason: string
   estimatedTime?: string
+  impact?: string
+}
+
+export interface AgentInfo {
+  id: string
+  name: string
+  status: 'active' | 'idle' | 'offline'
+  node_id?: string
+}
+
+export interface IntegrationInfo {
+  id: string
+  label: string
+  connected: boolean
+}
+
+export interface ProjectInfo {
+  id: string
+  name: string
+  active: boolean
+}
+
+export interface ChatMessage {
+  role: 'user' | 'agent'
+  text: string
+  agentName?: string
+}
+
+export interface JournalEntry {
+  timestamp: string
+  node_type: NodeType
+  event: string
+  reason: string
+  evidence: string[]
+  confidence_before: number
+  confidence_after: number
+}
+
+export interface DemoState {
+  pivotBlurredNodes: string[]
+  stage: number
 }
