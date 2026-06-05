@@ -15,14 +15,16 @@ function Dashboard() {
   const shellRef = useShellEntrance()
 
   return (
-    <div ref={shellRef} className="flex h-full flex-col">
+    <div ref={shellRef} className="flex h-dvh flex-col">
       <TopBar />
       <NotificationBar />
       <div className="flex min-h-0 flex-1">
         <LeftRail />
-        <main className="min-w-0 flex-1">
+        <main className="relative min-h-0 min-w-0 flex-1">
           <ReactFlowProvider>
-            <StartupCanvas />
+            <div className="size-full min-h-0">
+              <StartupCanvas />
+            </div>
           </ReactFlowProvider>
         </main>
         <RightPanel />

@@ -60,7 +60,7 @@ export function StartupCanvas() {
   }, [workspace, selectedNodeId, onSelect])
 
   return (
-    <div ref={canvasRef} className="relative h-full w-full bg-background">
+    <div ref={canvasRef} className="relative size-full min-h-0 bg-background">
       {workspace && (
         <div className="absolute left-6 top-6 z-10 max-w-md">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">{workspace.workspace_name}</h1>
@@ -77,6 +77,8 @@ export function StartupCanvas() {
       )}
 
       <ReactFlow
+        className="size-full"
+        style={{ width: '100%', height: '100%' }}
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
