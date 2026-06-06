@@ -1,6 +1,7 @@
 import { Download } from 'lucide-react'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { MOCK_EXPORT_FILES } from '@/mock/workspace'
+import { USE_MOCK } from '@/config/env'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,9 +13,24 @@ import {
 } from '@/components/ui/dialog'
 
 export function ExportModal() {
-  const { exportOpen, setExportOpen } = useWorkspaceStore()
+  const { exportOpen, setExportOpen, workspace } = useWorkspaceStore()
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    if (!USE_MOCK && workspace?.idea_id) {
+      const res = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspace.idea_id }),
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      if (typeof data.export_url === 'string') {
+        window.location.assign(data.export_url)
+        setExportOpen(false)
+      }
+      return
+    }
+
     const content = MOCK_EXPORT_FILES.map((f) => `- ${f}`).join('\n')
     const blob = new Blob([`CoFounder Export\n\n${content}`], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)

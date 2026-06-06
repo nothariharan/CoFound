@@ -5,10 +5,15 @@ import { mockCreateWorkspace, mockFetchWorkspace } from '@/mock/demoEngine'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { MOCK_AWAY_NOTIFICATION } from '@/mock/workspace'
 
+function normalizeEstimatedTime(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  return value.replace(/^~\s*/, '')
+}
+
 export function useWorkspace() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { setWorkspace, setPhase, setAwayNotification } = useWorkspaceStore()
+  const { setWorkspace, setPhase, setAwayNotification, setTodayPriority } = useWorkspaceStore()
 
   const createWorkspace = useCallback(
     async (idea: string) => {
@@ -29,6 +34,21 @@ export function useWorkspace() {
         const data: Workspace = await res.json()
         setWorkspace(data)
         setPhase('dashboard')
+        await fetch('/api/agents/spawn', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workspace_id: data.idea_id, trigger: 'session_start' }),
+        }).catch(() => undefined)
+        const priorityRes = await fetch(`/api/priority?workspace_id=${encodeURIComponent(data.idea_id)}`)
+        if (priorityRes.ok) {
+          const priority = await priorityRes.json()
+          setTodayPriority({
+            action: priority.action ?? '',
+            reason: priority.reason ?? '',
+            estimatedTime: normalizeEstimatedTime(priority.estimated_time),
+            impact: priority.impact,
+          })
+        }
         return data
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Unknown error'
@@ -38,7 +58,7 @@ export function useWorkspace() {
         setLoading(false)
       }
     },
-    [setWorkspace, setPhase, setAwayNotification],
+    [setWorkspace, setPhase, setAwayNotification, setTodayPriority],
   )
 
   const fetchWorkspace = useCallback(
@@ -57,6 +77,16 @@ export function useWorkspace() {
         const data: Workspace = await res.json()
         setWorkspace(data)
         setPhase('dashboard')
+        const priorityRes = await fetch(`/api/priority?workspace_id=${encodeURIComponent(data.idea_id)}`)
+        if (priorityRes.ok) {
+          const priority = await priorityRes.json()
+          setTodayPriority({
+            action: priority.action ?? '',
+            reason: priority.reason ?? '',
+            estimatedTime: normalizeEstimatedTime(priority.estimated_time),
+            impact: priority.impact,
+          })
+        }
         return data
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Unknown error'
@@ -66,7 +96,7 @@ export function useWorkspace() {
         setLoading(false)
       }
     },
-    [setWorkspace, setPhase],
+    [setWorkspace, setPhase, setTodayPriority],
   )
 
   return { createWorkspace, fetchWorkspace, loading, error }

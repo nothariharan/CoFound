@@ -3,6 +3,8 @@ import { ArrowUp } from 'lucide-react'
 import type { GraphNode } from '@/types'
 import { MOCK_CHAT_MESSAGES } from '@/mock/workspace'
 import { triggerPivotDemo } from '@/mock/demoEngine'
+import { USE_MOCK } from '@/config/env'
+import { useWorkspaceStore } from '@/store/workspaceStore'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
@@ -15,8 +17,16 @@ interface NodeChatProps {
 export function NodeChat({ node }: NodeChatProps) {
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState(MOCK_CHAT_MESSAGES)
+  const { workspace, setPivotBlurredNodes } = useWorkspaceStore()
 
-  const handleSend = (e: React.FormEvent) => {
+  const mapNodeTypesToIds = (nodesAffected: string[]) => {
+    if (!workspace) return []
+    return workspace.nodes
+      .filter((n) => nodesAffected.includes(n.type) || nodesAffected.includes(n.node_id))
+      .map((n) => n.node_id)
+  }
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
 
@@ -25,17 +35,66 @@ export function NodeChat({ node }: NodeChatProps) {
     setInput('')
 
     if (userMsg.toLowerCase().includes('pivot')) {
-      triggerPivotDemo()
-      setTimeout(() => {
+      if (USE_MOCK) {
+        triggerPivotDemo()
+        setTimeout(() => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'agent',
+              agentName: 'Diff Classifier',
+              text: 'Pivot detected. Re-researching Audience and Competitors while keeping Core Idea intact.',
+            },
+          ])
+        }, 500)
+      } else if (workspace?.idea_id) {
         setMessages((prev) => [
           ...prev,
           {
             role: 'agent',
             agentName: 'Diff Classifier',
-            text: 'Pivot detected. Re-researching Audience and Competitors while keeping Core Idea intact.',
+            text: 'Analyzing pivot and identifying affected nodes...',
           },
         ])
-      }, 500)
+        try {
+          const res = await fetch('/api/agents/pivot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workspace_id: workspace.idea_id, message: userMsg }),
+          })
+          if (!res.ok) throw new Error('Pivot request failed')
+          const data = await res.json()
+          const blurredNodeIds = mapNodeTypesToIds(data.nodes_affected ?? [])
+          setPivotBlurredNodes(blurredNodeIds)
+          setTimeout(() => setPivotBlurredNodes([]), 3000)
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'agent',
+              agentName: 'Diff Classifier',
+              text: `Pivot detected. Re-researching ${blurredNodeIds.length || data.nodes_affected?.length || 0} node(s).`,
+            },
+          ])
+        } catch {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'agent',
+              agentName: 'Diff Classifier',
+              text: 'Pivot request failed. Please try again.',
+            },
+          ])
+        }
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'agent',
+            agentName: 'Diff Classifier',
+            text: 'Pivot is unavailable until the workspace is loaded.',
+          },
+        ])
+      }
       return
     }
 
