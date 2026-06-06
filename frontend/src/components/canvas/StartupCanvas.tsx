@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
@@ -23,8 +23,6 @@ export function StartupCanvas() {
     (id: string) => setSelectedNodeId(id),
     [setSelectedNodeId],
   )
-
-  const prevNodeCount = useRef(0)
 
   const { nodes, edges } = useMemo(() => {
     if (!workspace) return { nodes: [], edges: [] as Edge[] }
@@ -55,7 +53,6 @@ export function StartupCanvas() {
       animated: workspace.nodes.find((n) => n.node_id === edge.target)?.active_agents.length ? true : false,
     }))
 
-    prevNodeCount.current = workspace.nodes.length
     return { nodes: flowNodes, edges: flowEdges }
   }, [workspace, selectedNodeId, onSelect])
 

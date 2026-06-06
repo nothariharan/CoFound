@@ -5,20 +5,16 @@ import { subscribeFeed } from '@/mock/demoEngine'
 
 export function useSSEFeed(workspaceId?: string) {
   const [messages, setMessages] = useState<FeedMessage[]>([])
-  const [connected, setConnected] = useState(false)
+  const [connected, setConnected] = useState(USE_MOCK)
   const sourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
     if (USE_MOCK) {
-      setConnected(true)
       const unsub = subscribeFeed((msg) => {
         if (msg.type === 'ping' || !msg.text) return
         setMessages((prev) => [...prev, msg])
       })
-      return () => {
-        unsub()
-        setConnected(false)
-      }
+      return unsub
     }
 
     const url = workspaceId ? `/api/feed?workspace_id=${workspaceId}` : '/api/feed'
