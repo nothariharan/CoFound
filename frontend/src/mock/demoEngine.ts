@@ -9,7 +9,7 @@ import {
 type DemoCallback = () => void
 
 let timers: ReturnType<typeof setTimeout>[] = []
-let feedListeners: Set<(msg: FeedMessage) => void> = new Set()
+const feedListeners: Set<(msg: FeedMessage) => void> = new Set()
 
 function clearTimers() {
   timers.forEach(clearTimeout)
@@ -90,13 +90,15 @@ export function stopDemoSequence() {
   feedListeners.clear()
 }
 
-export async function mockCreateWorkspace(_idea: string) {
+export async function mockCreateWorkspace(idea: string) {
+  void idea
   await new Promise((r) => setTimeout(r, 800))
   startDemoSequence()
   return useWorkspaceStore.getState().workspace!
 }
 
-export async function mockFetchWorkspace(_ideaId: string) {
+export async function mockFetchWorkspace(ideaId: string) {
+  void ideaId
   await new Promise((r) => setTimeout(r, 400))
   return createStage2Workspace()
 }
