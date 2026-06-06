@@ -30,7 +30,7 @@ export function StartupCanvas() {
     const nodeIds = new Set(workspace.nodes.map((n) => n.node_id))
 
     const flowNodes: Node[] = workspace.nodes.map((node) => {
-      const pos = getNodePosition(node.node_id)
+      const pos = getNodePosition(node.node_id, node.type)
       return {
         id: node.node_id,
         type: 'nodeCard',

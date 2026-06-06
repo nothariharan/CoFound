@@ -18,7 +18,7 @@ import { ConfidenceRing } from '@/components/canvas/ConfidenceRing'
 import { SourcePills } from '@/components/canvas/SourcePills'
 import { AgentChip } from '@/components/canvas/AgentChip'
 import { LockOverlay } from '@/components/canvas/LockOverlay'
-import { statusLabels } from '@/utils/nodeColors'
+import { getNodeTypeColor, getStatusTextClass, statusLabels } from '@/utils/nodeColors'
 import { formatRelativeTime } from '@/utils/formatters'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { cn } from '@/lib/utils'
@@ -29,7 +29,10 @@ export type NodeCardData = {
   selected: boolean
 }
 
-const nodeIcons: Record<NodeType, React.ComponentType<{ className?: string }>> = {
+const nodeIcons: Record<
+  NodeType,
+  React.ComponentType<{ className?: string; style?: React.CSSProperties }>
+> = {
   core_idea: Lightbulb,
   audience: Users,
   market_intelligence: BarChart3,
@@ -51,6 +54,7 @@ function NodeCardComponent({ data }: NodeProps & { data: NodeCardData }) {
   const cardRef = useRef<HTMLDivElement>(null)
 
   const Icon = nodeIcons[node.type] ?? Lightbulb
+  const typeColor = getNodeTypeColor(node.type)
 
   useEffect(() => {
     if (isPivotBlurred && cardRef.current) {
@@ -65,8 +69,9 @@ function NodeCardComponent({ data }: NodeProps & { data: NodeCardData }) {
       ref={cardRef}
       data-node-id={node.node_id}
       onClick={() => !isLocked && onSelect(node.node_id)}
+      style={!isLocked ? { borderLeft: `2px solid ${typeColor}` } : undefined}
       className={cn(
-        'relative w-[240px] cursor-pointer rounded-lg border bg-card p-4 transition-colors',
+        'relative w-[240px] cursor-pointer rounded-lg border bg-card p-3.5 transition-colors',
         selected ? 'border-primary ring-1 ring-primary/30' : 'border-border hover:border-muted-foreground/40',
         isLocked && 'cursor-default opacity-60',
       )}
@@ -78,19 +83,27 @@ function NodeCardComponent({ data }: NodeProps & { data: NodeCardData }) {
         <AgentChip key={agent} label={agent.replace('researcher_', 'R')} active />
       ))}
 
-      <div className="mb-3 flex items-start justify-between gap-2">
+      <div className="mb-2.5 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Icon className="size-3.5 text-muted-foreground" />
-          <span className="text-xs font-medium text-muted-foreground">{node.title}</span>
+          <Icon
+            className={cn('size-3.5', isLocked && 'text-muted-foreground')}
+            style={!isLocked ? { color: typeColor } : undefined}
+          />
+          <span className="text-xs font-medium text-foreground">{node.title}</span>
         </div>
         {!isLocked && <ConfidenceRing confidence={node.confidence} status={node.status} />}
         {isLocked && <Lock className="size-4 text-status-locked" />}
       </div>
 
-      <p className="mb-3 line-clamp-2 text-sm text-foreground">{node.summary}</p>
+      <p className="mb-2.5 line-clamp-2 text-[13px] text-foreground">{node.summary}</p>
 
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <span
+          className={cn(
+            'text-[10px] font-medium uppercase tracking-wide',
+            getStatusTextClass(node.status),
+          )}
+        >
           {statusLabels[node.status]}
         </span>
         {!isLocked && (

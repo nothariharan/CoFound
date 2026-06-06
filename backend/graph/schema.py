@@ -29,6 +29,25 @@ class NodeStatus(str, Enum):
     LOCKED = "locked"
 
 
+CANONICAL_NODE_IDS: dict[NodeType, str] = {
+    NodeType.CORE_IDEA: "node-core",
+    NodeType.AUDIENCE: "node-audience",
+    NodeType.MARKET_INTELLIGENCE: "node-market",
+    NodeType.COMPETITORS: "node-competitors",
+    NodeType.REVENUE: "node-revenue",
+    NodeType.PRODUCT_VISION: "node-product",
+    NodeType.TECH_STACK: "node-tech",
+    NodeType.BUILD: "node-build",
+    NodeType.LAUNCH: "node-launch",
+    NodeType.OBSERVE: "node-observe",
+    NodeType.GROWTH: "node-growth",
+}
+
+
+def canonical_node_id(node_type: NodeType) -> str:
+    return CANONICAL_NODE_IDS[node_type]
+
+
 class SourcePill(BaseModel):
     label: str
     count: int = 0
@@ -76,7 +95,7 @@ class CoreIdeaNode(BaseNode):
 
 
 class WorkspaceCreateRequest(BaseModel):
-    idea: str
+    idea: str = Field(min_length=1, max_length=4000)
 
 
 class WorkspaceDocument(BaseModel):
@@ -105,6 +124,7 @@ def status_from_confidence(confidence: int, locked: bool = False) -> NodeStatus:
 def create_core_idea_node(idea: str) -> CoreIdeaNode:
     one_liner = idea.strip()[:120]
     return CoreIdeaNode(
+        node_id=canonical_node_id(NodeType.CORE_IDEA),
         title="Core Idea",
         summary=one_liner,
         confidence=35,

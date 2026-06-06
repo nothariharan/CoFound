@@ -27,7 +27,7 @@ export function LeftRail() {
       </div>
 
       <div className="border-b border-border p-4">
-        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Project</p>
+        <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Project</p>
         <button
           type="button"
           className="flex w-full items-center justify-between rounded-md py-1 text-sm font-medium text-foreground hover:text-primary"
@@ -44,7 +44,7 @@ export function LeftRail() {
 
       <ScrollArea className="flex-1">
         <div className="p-4">
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Projects</p>
+          <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Projects</p>
           <div className="flex flex-col gap-1">
             {projects.map((p) => (
               <button
@@ -75,7 +75,7 @@ export function LeftRail() {
                 <span
                   className={cn(
                     'size-1.5 rounded-full',
-                    agent.status === 'active' ? 'bg-status-validated' : 'bg-border',
+                    agent.status === 'active' ? 'bg-status-validated' : 'bg-muted',
                   )}
                   aria-label={agent.status}
                 />
@@ -87,7 +87,7 @@ export function LeftRail() {
         <Separator />
 
         <div className="p-4">
-          <p className="mb-3 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Integrations</p>
+          <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Integrations</p>
           <div className="flex flex-col gap-2">
             {integrations.map((int) => (
               <IntegrationRow key={int.id} label={int.label} connected={int.connected} icon={getIntegrationIcon(int.id)} />

@@ -29,6 +29,11 @@ export function useWorkspace() {
         const data: Workspace = await res.json()
         setWorkspace(data)
         setPhase('dashboard')
+        await fetch('/api/agents/spawn', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workspace_id: data.idea_id, trigger: 'session_start' }),
+        })
         return data
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Unknown error'

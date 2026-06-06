@@ -26,3 +26,6 @@ cloud_run/__pycache__/
 
 # Local-only agent instructions (never commit)
 LOCAL_AGENT_RULES.md
+
+# WakaTime (local project name override)
+.wakatime-project

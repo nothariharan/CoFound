@@ -9,6 +9,7 @@ from uuid import uuid4
 from agents.planner import plan
 from agents.researcher import run_researchers
 from agents.store_protocol import DEFAULT_STORE, GraphStore, ResearchTask
+from graph.schema import NodeStatus
 from sse.feed import feed
 
 
@@ -62,4 +63,7 @@ async def spawn_research_session(
 def _needs_research(workspace, trigger: str) -> bool:
     if trigger in {"session_start", "pivot", "manual"}:
         return True
-    return any(getattr(n, "confidence", 0) < 80 and getattr(n, "status", "") != "locked" for n in workspace.nodes)
+    return any(
+        getattr(n, "confidence", 0) < 80 and getattr(n, "status", None) != NodeStatus.LOCKED
+        for n in workspace.nodes
+    )

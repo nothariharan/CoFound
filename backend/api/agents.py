@@ -41,7 +41,10 @@ async def spawn_agents(payload: SpawnRequest):
 @router.post("/agents/pivot")
 async def pivot_agents(payload: PivotRequest):
     try:
-        return await classify_pivot(payload.workspace_id, payload.message, store=DEFAULT_STORE, enqueue=True)
+        result = await classify_pivot(payload.workspace_id, payload.message, store=DEFAULT_STORE, enqueue=True)
+        if result.get("spawn_researcher"):
+            await spawn_research_session(payload.workspace_id, trigger="pivot", store=DEFAULT_STORE)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

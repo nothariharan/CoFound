@@ -36,7 +36,12 @@ export const NODE_EDGES: { source: string; target: string }[] = [
   { source: 'node-build', target: 'node-growth' },
 ]
 
-export function getNodePosition(nodeId: string): { x: number; y: number } {
-  const layout = NODE_LAYOUT.find((n) => n.node_id === nodeId)
-  return layout ? { x: layout.x, y: layout.y } : { x: 0, y: 0 }
+export function getNodePosition(nodeId: string, nodeType?: NodeType): { x: number; y: number } {
+  const byId = NODE_LAYOUT.find((n) => n.node_id === nodeId)
+  if (byId) return { x: byId.x, y: byId.y }
+  if (nodeType) {
+    const byType = NODE_LAYOUT.find((n) => n.type === nodeType)
+    if (byType) return { x: byType.x, y: byType.y }
+  }
+  return { x: 0, y: 0 }
 }

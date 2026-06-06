@@ -27,6 +27,17 @@
   --color-status-needs-work: var(--status-needs-work);
   --color-status-blocking: var(--status-blocking);
   --color-status-locked: var(--status-locked);
+  --color-node-core-idea: var(--node-core-idea);
+  --color-node-audience: var(--node-audience);
+  --color-node-market-intelligence: var(--node-market-intelligence);
+  --color-node-competitors: var(--node-competitors);
+  --color-node-revenue: var(--node-revenue);
+  --color-node-product-vision: var(--node-product-vision);
+  --color-node-tech-stack: var(--node-tech-stack);
+  --color-node-build: var(--node-build);
+  --color-node-launch: var(--node-launch);
+  --color-node-observe: var(--node-observe);
+  --color-node-growth: var(--node-growth);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -35,32 +46,43 @@
 }
 
 :root {
-  --background: #1f1e1d;
-  --foreground: #ededeb;
-  --card: #262624;
-  --card-foreground: #ededeb;
-  --popover: #302f2d;
-  --popover-foreground: #ededeb;
+  --background: #0c0c0b;
+  --foreground: #e8e6e3;
+  --card: #111110;
+  --card-foreground: #e8e6e3;
+  --popover: #181817;
+  --popover-foreground: #e8e6e3;
   --primary: #c96442;
   --primary-foreground: #faf9f7;
-  --secondary: #302f2d;
-  --secondary-foreground: #ededeb;
-  --muted: #302f2d;
-  --muted-foreground: #a3a09a;
-  --accent: #302f2d;
-  --accent-foreground: #ededeb;
+  --secondary: #181817;
+  --secondary-foreground: #e8e6e3;
+  --muted: #181817;
+  --muted-foreground: #6b6866;
+  --accent: #181817;
+  --accent-foreground: #e8e6e3;
   --destructive: #d96a5c;
   --destructive-foreground: #faf9f7;
-  --border: #3a3936;
-  --input: #3a3936;
+  --border: #222220;
+  --input: #222220;
   --ring: #c96442;
-  --surface: #262624;
-  --surface-elevated: #302f2d;
+  --surface: #111110;
+  --surface-elevated: #181817;
   --status-validated: #5fb87a;
   --status-needs-work: #d9a441;
   --status-blocking: #d96a5c;
-  --status-locked: #6b6a66;
-  --radius: 0.5rem;
+  --status-locked: #6b6866;
+  --node-core-idea: #5fb87a;
+  --node-audience: #e8943a;
+  --node-market-intelligence: #4a8eff;
+  --node-competitors: #d9a441;
+  --node-revenue: #10b981;
+  --node-product-vision: #a78bfa;
+  --node-tech-stack: #6366f1;
+  --node-build: #f472b6;
+  --node-launch: #8b5cf6;
+  --node-observe: #06b6d4;
+  --node-growth: #22c55e;
+  --radius: 0.625rem;
 }
 
 * {

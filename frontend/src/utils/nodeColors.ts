@@ -1,4 +1,18 @@
-import type { NodeStatus } from '@/types'
+import type { NodeStatus, NodeType } from '@/types'
+
+export const nodeTypeColors: Record<NodeType, string> = {
+  core_idea: 'var(--node-core-idea)',
+  audience: 'var(--node-audience)',
+  market_intelligence: 'var(--node-market-intelligence)',
+  competitors: 'var(--node-competitors)',
+  revenue: 'var(--node-revenue)',
+  product_vision: 'var(--node-product-vision)',
+  tech_stack: 'var(--node-tech-stack)',
+  build: 'var(--node-build)',
+  launch: 'var(--node-launch)',
+  observe: 'var(--node-observe)',
+  growth: 'var(--node-growth)',
+}
 
 export const statusColors: Record<NodeStatus, string> = {
   validated: 'var(--status-validated)',
@@ -23,6 +37,21 @@ export const statusBadgeVariant: Record<NodeStatus, 'success' | 'warning' | 'des
 
 export function getStatusColor(status: NodeStatus): string {
   return statusColors[status]
+}
+
+export function getNodeTypeColor(type: NodeType): string {
+  return nodeTypeColors[type]
+}
+
+const statusTextClasses: Record<NodeStatus, string> = {
+  validated: 'text-status-validated',
+  needs_work: 'text-status-needs-work',
+  blocking: 'text-status-blocking',
+  locked: 'text-status-locked',
+}
+
+export function getStatusTextClass(status: NodeStatus): string {
+  return statusTextClasses[status]
 }
 
 export function getRingColor(confidence: number, status: NodeStatus): string {
