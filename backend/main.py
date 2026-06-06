@@ -12,6 +12,7 @@ from api.agents import router as agents_router
 from api.export import router as export_router
 from api.feed import router as feed_router
 from api.workspace import router as workspace_router
+from api.nodes import router as nodes_router # Added this line
 
 
 @asynccontextmanager
@@ -40,6 +41,7 @@ app.include_router(workspace_router, prefix="/api")
 app.include_router(feed_router, prefix="/api")
 app.include_router(agents_router, prefix="/api")
 app.include_router(export_router, prefix="/api")
+app.include_router(nodes_router, prefix="/api") # Added this line
 
 
 @app.get("/health")

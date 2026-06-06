@@ -5,3 +5,5 @@ class Collection:
     TASK_QUEUE = "task_queue"
     DEAD_ENDS = "dead_ends"
     PRODUCT_KNOWLEDGE_BASE = "product_knowledge_base"
+    DECISION_JOURNAL = "decision_journal"
+    HISTORICAL_SNAPSHOTS = "historical_snapshots"
