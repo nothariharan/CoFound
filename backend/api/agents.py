@@ -5,10 +5,10 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from agents.diff_classifier import classify_pivot
-from agents.growth_agent import recommend_priority
-from agents.orchestrator import spawn_research_session
-from agents.store_protocol import DEFAULT_STORE
+from backend.agents.diff_classifier import classify_pivot # Corrected import
+from backend.agents.growth_agent import recommend_priority # Corrected import
+from backend.agents.orchestrator import spawn_research_session # Corrected import
+from backend.agents.store_protocol import DEFAULT_STORE # Corrected import
 
 router = APIRouter(tags=["agents"])
 

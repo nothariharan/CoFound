@@ -12,7 +12,15 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from graph.schema import BaseNode, NodeType, SourcePill, UnlockConditions, WorkspaceDocument, status_from_confidence
+from graph.schema import (
+    BaseNode,
+    NodeType,
+    SourcePill,
+    UnlockConditions,
+    WorkspaceDocument,
+    canonical_node_id,
+    status_from_confidence,
+)
 
 
 class ResearchTask(BaseModel):
@@ -136,7 +144,7 @@ class MemoryGraphStore:
             }
         )
         node = BaseNode(
-            node_id=existing.node_id if existing else str(uuid4()),
+            node_id=existing.node_id if existing else canonical_node_id(node_type),
             type=node_type,
             confidence=confidence,
             status=status,

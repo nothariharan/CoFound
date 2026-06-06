@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from agents.store_protocol import DEFAULT_STORE, GraphStore, ResearchTask
-from llm.gemini import generate_pro
+from backend.agents.store_protocol import DEFAULT_STORE, GraphStore, ResearchTask # Corrected import
+from backend.llm.gemini import generate_pro # Corrected import
 
 
 async def recommend_priority(workspace_id: str, store: GraphStore = DEFAULT_STORE, observe: dict[str, Any] | None = None) -> dict[str, str]:
