@@ -11,6 +11,7 @@ from graph.schema import BaseNode, UnlockConditions, status_from_confidence
 from llm.gemini import generate_flash
 from sse.feed import feed
 from tools import exa_search, firecrawl, github_search, gummysearch, producthunt, reddit_praw
+from scripts.vector_search import search_knowledge_base # Import the new function
 
 RESEARCH_SYSTEM = """You are a concise research synthesis agent.
 Given raw tool JSON, return a compact evidence summary with customer pains,
@@ -73,7 +74,8 @@ async def _run_task(workspace_id: str, store: GraphStore, task: ResearchTask, na
 
 
 async def execute_tools(query: str, tools: list[str]) -> list[dict[str, Any]]:
-    selected = tools or ["exa", "reddit"]
+    # Add "vector_search" to the default tools if no specific tools are provided
+    selected = tools or ["exa", "reddit", "vector_search"]
     calls: list[tuple[str, Any]] = []
     for tool in selected:
         tool = str(tool).lower().strip()
@@ -89,8 +91,11 @@ async def execute_tools(query: str, tools: list[str]) -> list[dict[str, Any]]:
             calls.append((tool, gummysearch.search_pain_points(query, limit=5)))
         elif tool in {"producthunt", "product_hunt"}:
             calls.append((tool, producthunt.search_launches(query, limit=5)))
+        elif tool == "vector_search": # New vector search tool
+            calls.append((tool, search_knowledge_base(query, limit=5)))
     if not calls:
-        calls = [("exa", exa_search.search(query, num_results=5)), ("reddit", reddit_praw.search(query, limit=5))]
+        # Fallback if for some reason 'selected' ended up empty or contained unrecognized tools
+        calls = [("exa", exa_search.search(query, num_results=5)), ("reddit", reddit_praw.search(query, limit=5)), ("vector_search", search_knowledge_base(query, limit=5))]
 
     gathered = await asyncio.gather(*(call for _, call in calls), return_exceptions=True)
     results: list[dict[str, Any]] = []
@@ -98,7 +103,22 @@ async def execute_tools(query: str, tools: list[str]) -> list[dict[str, Any]]:
         if isinstance(value, Exception):
             results.append({"tool": tool, "query": query, "items": [], "sources": [tool], "error": str(value)})
         else:
-            results.append(value)
+            # For vector_search, the results are already in the desired format
+            # Each item in 'value' is a document from the knowledge base
+            if tool == "vector_search":
+                items_from_vector_search = []
+                sources_from_vector_search = []
+                for doc in value:
+                    items_from_vector_search.append({
+                        "content": doc.get("content"),
+                        "source": doc.get("source_file"),
+                        "score": doc.get("score")
+                    })
+                    if doc.get("source_file"):
+                        sources_from_vector_search.append(doc.get("source_file"))
+                results.append({"tool": tool, "query": query, "items": items_from_vector_search, "sources": sources_from_vector_search})
+            else:
+                results.append(value)
     return results
 
 

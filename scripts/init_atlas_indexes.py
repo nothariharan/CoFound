@@ -55,19 +55,27 @@ def create_atlas_indexes():
 
     # 2. product_knowledge_base: vector search index on embedding field
     try:
+        # Attempt to drop the index if it already exists
+        print("Attempting to drop existing 'product_knowledge_base_vector_index' if it exists...")
+        try:
+            db.product_knowledge_base.drop_search_index("product_knowledge_base_vector_index")
+            print("Existing 'product_knowledge_base_vector_index' dropped successfully.")
+        except Exception as e:
+            print(f"Could not drop existing vector search index (it might not exist): {e}")
+
         vector_search_index_model = SearchIndexModel(
             definition={
                 "fields": [
                     {
-                        "type": "vector", # Corrected type from knnVector to vector
+                        "type": "vector",
                         "path": "embedding",
-                        "numDimensions": 1536, # Assuming common embedding size, adjust if needed
+                        "numDimensions": 3072, # Changed from 1536 to 3072
                         "similarity": "cosine"
                     }
                 ]
             },
             name="product_knowledge_base_vector_index",
-            type="vectorSearch" # Specify the type for a vector search index
+            type="vectorSearch"
         )
         db.product_knowledge_base.create_search_index(model=vector_search_index_model)
         print("Created vector search index for 'product_knowledge_base' collection on 'embedding'.")

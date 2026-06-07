@@ -91,11 +91,11 @@ def _mock_response(prompt: str, system: str, model: str) -> str:
         return json.dumps(
             {
                 "tasks": [
-                    {"task": "Find painful customer segments and repeated pain points", "type": "audience", "tools": ["reddit", "exa"], "priority": 1},
-                    {"task": "Map market size, trends, and urgency signals", "type": "market_intelligence", "tools": ["exa", "firecrawl"], "priority": 2},
+                    {"task": "Find painful customer segments and repeated pain points", "type": "audience", "tools": ["reddit", "exa", "vector_search"], "priority": 1},
+                    {"task": "Map market size, trends, and urgency signals", "type": "market_intelligence", "tools": ["exa", "firecrawl", "vector_search"], "priority": 2},
                     {"task": "Identify direct and indirect competitors", "type": "competitors", "tools": ["exa", "firecrawl"], "priority": 3},
                     {"task": "Validate monetization and existing spend", "type": "revenue", "tools": ["reddit", "exa"], "priority": 4},
-                    {"task": "Extract minimum lovable product and feature wedge", "type": "product_vision", "tools": ["firecrawl", "exa"], "priority": 5},
+                    {"task": "Extract minimum lovable product and feature wedge", "type": "product_vision", "tools": ["firecrawl", "exa", "vector_search"], "priority": 5},
                     {"task": "Assess technical stack, integrations, and moat risk", "type": "tech_stack", "tools": ["github", "exa"], "priority": 6},
                 ]
             }
