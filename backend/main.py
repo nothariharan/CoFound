@@ -12,13 +12,15 @@ from api.agents import router as agents_router
 from api.export import router as export_router
 from api.feed import router as feed_router
 from api.workspace import router as workspace_router
-from api.nodes import router as nodes_router # Added this line
+from api.nodes import router as nodes_router
+from db.connection import connect_to_mongo, close_mongo_connection
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    # TODO: connect MongoDB Atlas via motor
+    await connect_to_mongo()
     yield
+    await close_mongo_connection()
 
 
 app = FastAPI(title="CoFounder API", version="0.1.0", lifespan=lifespan)
@@ -41,7 +43,7 @@ app.include_router(workspace_router, prefix="/api")
 app.include_router(feed_router, prefix="/api")
 app.include_router(agents_router, prefix="/api")
 app.include_router(export_router, prefix="/api")
-app.include_router(nodes_router, prefix="/api") # Added this line
+app.include_router(nodes_router, prefix="/api")
 
 
 @app.get("/health")

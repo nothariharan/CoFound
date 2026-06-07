@@ -1,5 +1,3 @@
-"""Node read/write/update operations — wired to MongoDB in Day 1-2."""
-
 from datetime import datetime
 from typing import Any
 
@@ -13,11 +11,11 @@ class NodeManager:
 
     async def get_workspace(self, idea_id: str) -> WorkspaceDocument | None:
         """Retrieves a workspace document from MongoDB."""
-        doc = await db.db[Collection.WORKSPACES].find_one({"_id": idea_id}) # Changed to _id
+        doc = await db.db[Collection.WORKSPACES].find_one({"_id": idea_id})
         if doc:
             # Update last_active timestamp
             await db.db[Collection.WORKSPACES].update_one(
-                {"_id": idea_id}, # Changed to _id
+                {"_id": idea_id},
                 {"$set": {"last_active": datetime.utcnow()}}
             )
             return WorkspaceDocument(**doc)
@@ -40,7 +38,7 @@ class NodeManager:
         )
         # If it was an insert, ensure the idea_id is set back correctly
         if result.upserted_id:
-            workspace.idea_id = str(result.upserted_id) # MongoDB _id is ObjectId, convert to str
+            workspace.idea_id = str(result.upserted_id)
         return workspace
 
     async def update_node(self, idea_id: str, node: BaseNode) -> BaseNode:
@@ -50,7 +48,7 @@ class NodeManager:
         node_dict = node.model_dump(by_alias=True, exclude_unset=True)
 
         result = await db.db[Collection.WORKSPACES].update_one(
-            {"_id": idea_id, "nodes.node_id": node.node_id}, # Changed to _id
+            {"_id": idea_id, "nodes.node_id": node.node_id},
             {"$set": {
                 "nodes.$[elem]": node_dict,
                 "last_active": datetime.utcnow()
@@ -60,15 +58,11 @@ class NodeManager:
 
         if result.modified_count == 0:
             # If node was not found for update, try to add it to the array
-            # This assumes that if update_one with array_filters fails, the node might be new.
-            # A more robust solution might involve fetching the workspace first.
             add_result = await db.db[Collection.WORKSPACES].update_one(
                 {"_id": idea_id},
                 {"$push": {"nodes": node_dict}, "$set": {"last_active": datetime.utcnow()}}
             )
             if add_result.modified_count == 0:
-                # If neither update nor push worked, the workspace might not exist or another issue.
-                # For now, we'll just return the node, but this could be improved with error handling.
                 pass
 
         return node
