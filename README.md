@@ -63,7 +63,7 @@ cofounder/
 ## Build Plan
 
 | Days | Milestone |
-|------|-----------|
+|------|-----------
 | 1-2  | MongoDB Atlas schema + node documents |
 | 3-4  | Research loop + SSE live feed |
 | 5-6  | Canvas + confidence rings + agent chips |
@@ -75,3 +75,22 @@ cofounder/
 ## License
 
 MIT
+
+## Manual Test Script
+
+# Create workspace
+```bash
+curl -X POST http://localhost:8000/api/workspace \
+  -H "Content-Type: application/json" \
+  -d '{"idea": "AI inventory copilot for restaurants"}'
+```
+
+# Save idea_id from response, then:
+```bash
+curl http://localhost:8000/api/workspace/{idea_id}
+```
+
+# Restart server, verify persistence
+```bash
+curl http://localhost:8000/api/workspace/{idea_id}
+```

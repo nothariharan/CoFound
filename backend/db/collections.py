@@ -1,9 +1,9 @@
-class Collection:
-    WORKSPACES = "workspaces"
-    NODES = "nodes"
-    EDGES = "edges"
-    TASK_QUEUE = "task_queue"
-    DEAD_ENDS = "dead_ends"
-    PRODUCT_KNOWLEDGE_BASE = "product_knowledge_base"
-    DECISION_JOURNAL = "decision_journal"
-    HISTORICAL_SNAPSHOTS = "historical_snapshots"
+# Collection names
+NODES = "nodes"
+STARTUP_GRAPHS = "startup_graphs"
+TASK_QUEUE = "task_queue"
+PRODUCT_KNOWLEDGE_BASE = "product_knowledge_base"
+DECISION_JOURNAL = "decision_journal"
+DEAD_ENDS = "dead_ends"
+BUILD_EVENTS = "build_events"
+OBSERVE_EVENTS = "observe_events"
