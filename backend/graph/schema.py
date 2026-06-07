@@ -92,6 +92,68 @@ class WorkspaceDocument(BaseModel):
     export_url: str | None = None
 
 
+class EventType(str, Enum):
+    NODE_CREATED = "node_created"
+    NODE_UPDATED = "node_updated"
+    NODE_DELETED = "node_deleted"
+    AGENT_ASSIGNED = "agent_assigned"
+    AGENT_UNASSIGNED = "agent_unassigned"
+    RESEARCH_COMPLETED = "research_completed"
+    CHAT_MESSAGE = "chat_message"
+    STATUS_CHANGED = "status_changed"
+    CONFIDENCE_CHANGED = "confidence_changed"
+    SOURCE_ADDED = "source_added"
+    SOURCE_REMOVED = "source_removed"
+    WORKSPACE_CREATED = "workspace_created"
+    WORKSPACE_UPDATED = "workspace_updated"
+    TASK_ENQUEUED = "task_enqueued"
+    TASK_PROCESSED = "task_processed"
+    TASK_FAILED = "task_failed"
+    TASK_DEAD_ENDED = "task_dead_ended"
+
+
+class BaseEvent(BaseModel):
+    event_id: str = Field(default_factory=lambda: str(uuid4()))
+    idea_id: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    event_type: EventType
+    details: dict[str, Any] = Field(default_factory=dict)
+    agent_id: str | None = None
+
+
+class BuildEvent(BaseEvent):
+    # Specific fields for build events, if any, can be added here.
+    # For now, it reuses BaseEvent fields.
+    pass
+
+
+class ObserveEvent(BaseEvent):
+    # Specific fields for observe events, if any, can be added here.
+    # For now, it reuses BaseEvent fields.
+    pass
+
+
+class TaskStatus(str, Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    DEAD_END = "dead_end"
+
+
+class Task(BaseModel):
+    task_id: str = Field(default_factory=lambda: str(uuid4()))
+    idea_id: str
+    task_type: str
+    status: TaskStatus = TaskStatus.PENDING
+    payload: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    retries: int = 0
+    max_retries: int = 3
+    error_message: str | None = None
+
+
 def status_from_confidence(confidence: int, locked: bool = False) -> NodeStatus:
     if locked:
         return NodeStatus.LOCKED
