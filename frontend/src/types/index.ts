@@ -50,6 +50,8 @@ export interface FeedMessage {
 
 export type AppPhase = 'intake' | 'dashboard'
 
+export type AppMode = 'demo' | 'live'
+
 export interface TodayPriority {
   action: string
   reason: string
@@ -64,10 +66,15 @@ export interface AgentInfo {
   node_id?: string
 }
 
+export type IntegrationStatus = 'connected' | 'available' | 'coming_soon'
+
 export interface IntegrationInfo {
   id: string
   label: string
   connected: boolean
+  status: IntegrationStatus
+  description: string
+  unlocks?: string
 }
 
 export interface ProjectInfo {

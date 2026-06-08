@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FeedMessage } from '@/types'
-import { USE_MOCK } from '@/config/env'
 import { subscribeFeed } from '@/mock/demoEngine'
+import { useWorkspaceStore } from '@/store/workspaceStore'
 
 export function useSSEFeed(workspaceId?: string) {
   const [messages, setMessages] = useState<FeedMessage[]>([])
-  const [connected, setConnected] = useState(USE_MOCK)
+  const [connected, setConnected] = useState(false)
   const sourceRef = useRef<EventSource | null>(null)
+  const isDemo = useWorkspaceStore((s) => s.mode === 'demo')
 
   useEffect(() => {
-    if (USE_MOCK) {
+    setMessages([])
+    setConnected(isDemo)
+
+    if (isDemo) {
       const unsub = subscribeFeed((msg) => {
         if (msg.type === 'ping' || !msg.text) return
         setMessages((prev) => [...prev, msg])
@@ -38,7 +42,7 @@ export function useSSEFeed(workspaceId?: string) {
       source.close()
       sourceRef.current = null
     }
-  }, [workspaceId])
+  }, [workspaceId, isDemo])
 
   return { messages, connected }
 }

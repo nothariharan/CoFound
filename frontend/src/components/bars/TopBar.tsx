@@ -1,10 +1,12 @@
 import { Bell, Clock } from 'lucide-react'
+import { useGoHome } from '@/hooks/useGoHome'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export function TopBar() {
+  const goHome = useGoHome()
   const { workspace, healthScore } = useWorkspaceStore()
   const score = healthScore || (workspace?.nodes.length
     ? Math.round(workspace.nodes.reduce((sum, n) => sum + n.confidence, 0) / workspace.nodes.length)
@@ -16,9 +18,15 @@ export function TopBar() {
   return (
     <header className="shell-panel flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-4">
       <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-foreground">CoFound</span>
+        <button
+          type="button"
+          onClick={goHome}
+          className="text-sm font-medium text-foreground transition-colors hover:text-primary"
+        >
+          CoFound
+        </button>
         <span className="h-3 w-px bg-border" aria-hidden />
-        <span className="text-sm text-muted-foreground">{workspace?.workspace_name ?? 'Workspace'}</span>
+        <span className="truncate text-sm text-muted-foreground">{workspace?.workspace_name ?? 'Workspace'}</span>
       </div>
 
       <div className="flex items-center gap-4">

@@ -9,13 +9,69 @@ export function useIntakeAnimation() {
     () => {
       const mm = createMotionMatchMedia()
       mm.add(({ reduceMotion }) => {
-        gsap.from('.intake-animate', {
+        const ease = 'power3.out'
+        const dur = motionDuration(reduceMotion, 0.85, 0.01)
+
+        const tl = gsap.timeline({ defaults: { ease } })
+
+        tl.from('.intake-nav', {
           autoAlpha: 0,
-          y: reduceMotion ? 0 : 16,
-          duration: motionDuration(reduceMotion, 0.4),
-          stagger: motionStagger(reduceMotion, 0.08),
-          ease: 'power2.out',
+          y: reduceMotion ? 0 : -12,
+          duration: dur,
         })
+          .from(
+            '.intake-logo-watermark',
+            {
+              autoAlpha: 0,
+              scale: reduceMotion ? 1 : 0.92,
+              duration: motionDuration(reduceMotion, 1.2, 0.01),
+            },
+            '-=0.4',
+          )
+          .from(
+            '.intake-hero-badge',
+            { autoAlpha: 0, y: reduceMotion ? 0 : 20, duration: dur },
+            '-=0.85',
+          )
+          .from(
+            '.intake-hero-title',
+            { autoAlpha: 0, y: reduceMotion ? 0 : 24, duration: dur },
+            '-=0.65',
+          )
+          .from(
+            '.intake-hero-sub',
+            { autoAlpha: 0, y: reduceMotion ? 0 : 18, duration: dur },
+            '-=0.7',
+          )
+          .from(
+            '.intake-input-shell',
+            {
+              autoAlpha: 0,
+              y: reduceMotion ? 0 : 20,
+              scale: reduceMotion ? 1 : 0.98,
+              duration: dur,
+            },
+            '-=0.65',
+          )
+          .from(
+            '.intake-agent-gallery',
+            {
+              autoAlpha: 0,
+              y: reduceMotion ? 0 : 24,
+              duration: motionDuration(reduceMotion, 0.8, 0.01),
+            },
+            '-=0.5',
+          )
+
+        if (!reduceMotion) {
+          gsap.to('.intake-logo-watermark', {
+            scale: 1.03,
+            duration: 4,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut',
+          })
+        }
       }, containerRef.current)
       return () => mm.revert()
     },

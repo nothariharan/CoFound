@@ -9,16 +9,15 @@ if str(BACKEND_ROOT) not in sys.path:
 
 import pytest
 
-from agents.store_protocol import MemoryGraphStore
+from agents.store_protocol import MEMORY_WORKSPACES, MemoryGraphStore
 from graph.schema import WorkspaceDocument, create_core_idea_node
-from store import WORKSPACES
 
 
 @pytest.fixture(autouse=True)
 def clear_memory_store():
-    WORKSPACES.clear()
+    MEMORY_WORKSPACES.clear()
     yield
-    WORKSPACES.clear()
+    MEMORY_WORKSPACES.clear()
 
 
 @pytest.fixture
@@ -27,7 +26,7 @@ def workspace():
         workspace_name="Restaurant Inventory Copilot",
         nodes=[create_core_idea_node("AI copilot for restaurant owners to manage inventory and reduce waste")],
     )
-    WORKSPACES[ws.idea_id] = ws
+    MEMORY_WORKSPACES[ws.idea_id] = ws
     return ws
 
 

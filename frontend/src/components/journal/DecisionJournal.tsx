@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '@/store/workspaceStore'
+import { useAgentActions } from '@/hooks/useAgentActions'
 import { MOCK_JOURNAL } from '@/mock/workspace'
+import type { JournalEntry } from '@/types'
 import { formatRelativeTime } from '@/utils/formatters'
 import {
   Dialog,
@@ -13,7 +16,20 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 
 export function DecisionJournal() {
-  const { journalOpen, setJournalOpen, setSelectedNodeId, workspace } = useWorkspaceStore()
+  const { journalOpen, setJournalOpen, setSelectedNodeId, workspace, mode } = useWorkspaceStore()
+  const isDemo = mode === 'demo'
+  const { fetchJournal } = useAgentActions()
+  const [entries, setEntries] = useState<JournalEntry[]>(isDemo ? MOCK_JOURNAL : [])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!journalOpen || !workspace?.idea_id) return
+    setLoading(true)
+    fetchJournal(workspace.idea_id)
+      .then(setEntries)
+      .catch(() => setEntries(isDemo ? MOCK_JOURNAL : []))
+      .finally(() => setLoading(false))
+  }, [journalOpen, workspace?.idea_id, fetchJournal, isDemo])
 
   return (
     <Dialog open={journalOpen} onOpenChange={setJournalOpen}>
@@ -25,11 +41,15 @@ export function DecisionJournal() {
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-4">
+          {loading && <p className="text-sm text-muted-foreground">Loading journal...</p>}
+          {!loading && entries.length === 0 && (
+            <p className="text-sm text-muted-foreground">No journal entries yet. Run research to populate.</p>
+          )}
           <div className="flex flex-col gap-4">
-            {MOCK_JOURNAL.map((entry, i) => {
+            {entries.map((entry, i) => {
               const node = workspace?.nodes.find((n) => n.type === entry.node_type)
               return (
-                <div key={i}>
+                <div key={`${entry.timestamp}-${i}`}>
                   <button
                     type="button"
                     className="w-full text-left"
@@ -59,7 +79,7 @@ export function DecisionJournal() {
                       {entry.confidence_before}% → {entry.confidence_after}%
                     </p>
                   </button>
-                  {i < MOCK_JOURNAL.length - 1 && <Separator className="mt-4" />}
+                  {i < entries.length - 1 && <Separator className="mt-4" />}
                 </div>
               )
             })}

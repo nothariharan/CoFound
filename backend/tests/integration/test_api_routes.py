@@ -37,7 +37,15 @@ def test_main_app_includes_track_b_routers():
 
     assert "/api/agents/spawn" in paths
     assert "/api/agents/pivot" in paths
+    assert "/api/agents/dialogue" in paths
+    assert "/api/agents/observe" in paths
+    assert "/api/agents/observe-funnel" in paths
     assert "/api/priority" in paths
+    assert "/api/nodes/{node_id}" in paths
+    assert "/api/workspace/{idea_id}/journal" in paths
+    assert "/api/integrations" in paths
+    assert "/api/integrations/github" in paths
+    assert "/api/integrations/posthog" in paths
     assert "/api/export" in paths
     assert "/api/export/{export_id}/download" in paths
 

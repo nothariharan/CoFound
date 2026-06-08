@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -14,10 +14,29 @@ import { useCanvasUnlockAnimation } from '@/hooks/useAnimations'
 const nodeTypes = { nodeCard: NodeCard }
 
 export function StartupCanvas() {
-  const { workspace, selectedNodeId, setSelectedNodeId, demoStage } = useWorkspaceStore()
-  const canvasRef = useCanvasUnlockAnimation(
-    demoStage >= 2 ? ['node-audience', 'node-market', 'node-competitors'] : [],
-  )
+  const { workspace, selectedNodeId, setSelectedNodeId } = useWorkspaceStore()
+  const prevUnlockedRef = useRef<Set<string>>(new Set())
+  const [newlyUnlocked, setNewlyUnlocked] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!workspace) {
+      prevUnlockedRef.current = new Set()
+      setNewlyUnlocked([])
+      return
+    }
+
+    const currentUnlocked = new Set(
+      workspace.nodes
+        .filter((n) => n.status !== 'locked' && n.type !== 'core_idea')
+        .map((n) => n.node_id),
+    )
+
+    const fresh = [...currentUnlocked].filter((id) => !prevUnlockedRef.current.has(id))
+    prevUnlockedRef.current = currentUnlocked
+    if (fresh.length) setNewlyUnlocked(fresh)
+  }, [workspace])
+
+  const canvasRef = useCanvasUnlockAnimation(newlyUnlocked)
 
   const onSelect = useCallback(
     (id: string) => setSelectedNodeId(id),
@@ -62,7 +81,7 @@ export function StartupCanvas() {
         <div className="absolute left-6 top-6 z-10 max-w-md">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">{workspace.workspace_name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {workspace.nodes.find((n) => n.type === 'core_idea')?.summary ?? 'AI copilot for busy restaurant owners'}
+            {workspace.nodes.find((n) => n.type === 'core_idea')?.summary ?? workspace.workspace_name}
           </p>
           <div className="mt-2 inline-flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground">
             Idea confidence{' '}

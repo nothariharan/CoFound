@@ -42,7 +42,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Geist Sans", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+  --font-display: "Instrument Serif", "Newsreader", "Georgia", serif;
 }
 
 :root {
@@ -156,6 +157,79 @@ body {
   animation: agent-pulse 2s ease-in-out infinite;
 }
 
+/* Landing page */
+.landing-page {
+  isolation: isolate;
+}
+
+.app-cursor-root {
+  cursor: none;
+}
+
+body.custom-cursor-active,
+body.custom-cursor-active * {
+  cursor: none !important;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+.intake-hero-title {
+  color: #1f1612;
+  text-shadow: 0 1px 20px rgba(255, 248, 240, 0.35);
+}
+
+.intake-hero-sub {
+  color: #4a3d36;
+}
+
+.hero-center-stack {
+  min-height: min(52vh, 520px);
+}
+
+.hero-watermark-mark {
+  will-change: transform;
+}
+
+.agent-cursors-layer {
+  max-width: 100vw;
+}
+
+.agent-cursor-inner {
+  will-change: transform;
+  transform-origin: center center;
+}
+
+.intake-nav-btn {
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.intake-nav-btn:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 767px) {
+  .agent-cursor-tag span {
+    font-size: 10px;
+  }
+
+  .agent-cursor-tag {
+    padding: 4px 8px;
+  }
+
+  .agent-cursors-layer .agent-cursor:nth-child(n + 5) {
+    display: none;
+  }
+
+  .hero-watermark-mark {
+    width: 180px !important;
+    height: 180px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .agent-chip-active {
     animation: none;
@@ -163,4 +237,36 @@ body {
   .node-pivot-blur {
     transition: none;
   }
+  .intake-nav-btn {
+    transition: none;
+  }
+  .hero-watermark-mark,
+  .agent-cursor-inner {
+    will-change: auto;
+  }
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+/* Agent work gallery */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap, 1rem)));
+  }
+}
+
+.animate-marquee {
+  animation: marquee var(--duration, 38s) linear infinite;
+}
+
+.agent-work-card-shell {
+  border-radius: 0.75rem;
+}
+
+.agent-work-card-face {
+  min-height: 280px;
 }

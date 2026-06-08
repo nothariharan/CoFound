@@ -21,6 +21,10 @@ from graph.schema import (
     canonical_node_id,
     status_from_confidence,
 )
+from graph.snapshot import create_snapshot
+from graph.unlock_engine import compute_unlock_states
+
+MEMORY_WORKSPACES: dict[str, WorkspaceDocument] = {}
 
 
 class ResearchTask(BaseModel):
@@ -52,31 +56,73 @@ class MemoryGraphStore:
     """Small interim GraphStore backed by the repo's current in-memory dict."""
 
     def __init__(self) -> None:
-        # Track A owns backend/store.py. This adapter only wraps it until Atlas lands.
-        from store import WORKSPACES  # type: ignore
-
-        self.workspaces: dict[str, WorkspaceDocument] = WORKSPACES
+        self.workspaces: dict[str, WorkspaceDocument] = MEMORY_WORKSPACES
         self.task_queue: list[ResearchTask] = []
         self.dead_ends: list[dict[str, Any]] = []
         self.task_results: dict[str, dict[str, Any]] = {}
         self.priority_cache: dict[str, dict[str, Any]] = {}
+        self.journal_entries: list[dict[str, Any]] = []
+        self.build_events: list[dict[str, Any]] = []
+        self.observe_events: list[dict[str, Any]] = []
 
     async def get_workspace(self, idea_id: str) -> WorkspaceDocument | None:
-        return self.workspaces.get(idea_id)
+        workspace = self.workspaces.get(idea_id)
+        if workspace is None:
+            return None
+        workspace.nodes = compute_unlock_states(workspace.nodes)
+        return workspace
+
+    async def save_workspace(self, workspace: WorkspaceDocument) -> WorkspaceDocument:
+        workspace.last_active = _now_utc()
+        self.workspaces[workspace.idea_id] = workspace
+        return workspace
 
     async def update_node(self, idea_id: str, node: BaseNode) -> BaseNode:
         workspace = self.workspaces.get(idea_id)
         if workspace is None:
             raise KeyError(f"Workspace not found: {idea_id}")
+        before = next((n for n in workspace.nodes if n.node_id == node.node_id or n.type == node.type), None)
+        confidence_before = before.confidence if before else 0
         node.last_updated = _now_utc()
+        if before is not None and before.confidence != node.confidence:
+            snapshots = list(node.historical_snapshots)
+            snapshots.append(create_snapshot(node.confidence, f"{confidence_before}% -> {node.confidence}%"))
+            node.historical_snapshots = snapshots
         for i, existing in enumerate(workspace.nodes):
             if existing.node_id == node.node_id or existing.type == node.type:
                 workspace.nodes[i] = node
                 workspace.last_active = _now_utc()
+                if before is None or before.confidence != node.confidence or before.status != node.status:
+                    await self._append_journal(idea_id, node, confidence_before, before)
                 return node
         workspace.nodes.append(node)
         workspace.last_active = _now_utc()
+        await self._append_journal(idea_id, node, confidence_before, before)
         return node
+
+    async def _append_journal(self, idea_id: str, node: BaseNode, confidence_before: int, before: BaseNode | None) -> None:
+        self.journal_entries.append(
+            {
+                "entry_id": str(uuid4()),
+                "idea_id": idea_id,
+                "timestamp": _now_utc().isoformat(),
+                "node_type": node.type.value,
+                "event": "confidence_updated" if before and before.confidence != node.confidence else "node_updated",
+                "reason": f"Node {node.type.value} updated",
+                "evidence": node.sources[:5],
+                "confidence_before": confidence_before,
+                "confidence_after": node.confidence,
+            }
+        )
+
+    async def list_journal(self, idea_id: str) -> list[dict[str, Any]]:
+        return [e for e in self.journal_entries if e.get("idea_id") == idea_id]
+
+    async def log_build_event(self, workspace_id: str, payload: dict[str, Any]) -> None:
+        self.build_events.append({"workspace_id": workspace_id, "timestamp": _now_utc().isoformat(), **payload})
+
+    async def log_observe_event(self, workspace_id: str, payload: dict[str, Any]) -> None:
+        self.observe_events.append({"workspace_id": workspace_id, "timestamp": _now_utc().isoformat(), **payload})
 
     async def enqueue_task(self, task: ResearchTask) -> None:
         if not any(t.task_id == task.task_id for t in self.task_queue):
@@ -197,4 +243,20 @@ def _merge_source_pills(existing: list[SourcePill], new: list[SourcePill]) -> li
     return list(merged.values())
 
 
-DEFAULT_STORE = MemoryGraphStore()
+class StoreProxy:
+    """Mutable proxy so lifespan can swap MemoryGraphStore for AtlasGraphStore."""
+
+    def __init__(self) -> None:
+        self._store: GraphStore = MemoryGraphStore()
+
+    def set(self, store: GraphStore) -> None:
+        self._store = store
+
+    def get(self) -> GraphStore:
+        return self._store
+
+    def __getattr__(self, name: str):
+        return getattr(self._store, name)
+
+
+DEFAULT_STORE: StoreProxy = StoreProxy()

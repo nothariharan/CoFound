@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { USE_MOCK } from '@/config/env'
 import { useSSEFeed } from '@/hooks/useSSEFeed'
 import { useWorkspace } from '@/hooks/useWorkspace'
 import { useWorkspaceStore } from '@/store/workspaceStore'
@@ -7,7 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
 export function AgentFeed() {
-  const { workspace } = useWorkspaceStore()
+  const workspace = useWorkspaceStore((s) => s.workspace)
+  const isDemo = useWorkspaceStore((s) => s.mode === 'demo')
   const { fetchWorkspace } = useWorkspace()
   const { messages, connected } = useSSEFeed(workspace?.idea_id)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -17,20 +17,20 @@ export function AgentFeed() {
   }, [messages])
 
   useEffect(() => {
-    if (USE_MOCK || !workspace?.idea_id) return
+    if (isDemo || !workspace?.idea_id) return
     const last = messages.at(-1)
     if (last?.type === 'done' || last?.type === 'critique') {
       void fetchWorkspace(workspace.idea_id)
     }
-  }, [messages, workspace?.idea_id, fetchWorkspace])
+  }, [messages, workspace?.idea_id, fetchWorkspace, isDemo])
 
   useEffect(() => {
-    if (USE_MOCK || !workspace?.idea_id || !connected) return
+    if (isDemo || !workspace?.idea_id || !connected) return
     const interval = window.setInterval(() => {
       void fetchWorkspace(workspace.idea_id)
     }, 8000)
     return () => window.clearInterval(interval)
-  }, [workspace?.idea_id, connected, fetchWorkspace])
+  }, [workspace?.idea_id, connected, fetchWorkspace, isDemo])
 
   return (
     <div className="flex h-full flex-col">
