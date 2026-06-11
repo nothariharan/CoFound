@@ -19,6 +19,8 @@ class SSEFeed:
             "type": event.get("type", "info"),
             **({"node_id": event["node_id"]} if event.get("node_id") else {}),
             **({"score": event["score"]} if event.get("score") is not None else {}),
+            **({"workspace": event["workspace"]} if event.get("workspace") else {}),
+            **({"dialogue": event["dialogue"]} if event.get("dialogue") else {}),
         }
         self._history[workspace_id].append(payload)
         for queue in list(self._subscribers.get(workspace_id, set())):

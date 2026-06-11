@@ -1,42 +1,58 @@
 import { create } from 'zustand'
 import type {
   AgentInfo,
-  AppMode,
   AppPhase,
+  ChatMessage,
   GraphNode,
   IntegrationInfo,
   ProjectInfo,
   TodayPriority,
+  VoiceState,
   Workspace,
 } from '@/types'
-import { USE_MOCK } from '@/config/env'
 import { INTEGRATION_CATALOG } from '@/config/integrations'
-import { MOCK_PROJECTS } from '@/mock/workspace'
-
-const DEFAULT_MODE: AppMode = USE_MOCK ? 'demo' : 'live'
+import { resetVoiceSession } from '@/lib/voiceRecorder'
+import { getNodeAgentConfig } from '@/config/nodeAgents'
+import { NODE_LAYOUT } from '@/utils/canvasLayout'
 
 function deriveAgents(workspace: Workspace | null): AgentInfo[] {
-  if (!workspace) return [{ id: 'orchestrator', name: 'Orchestrator', status: 'active' }]
-  const fromNodes = workspace.nodes.flatMap((n) =>
-    n.active_agents.map((id) => ({
-      id,
-      name: id.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-      status: 'active' as const,
-      node_id: n.node_id,
-    })),
-  )
-  if (fromNodes.length) return fromNodes
-  return [{ id: 'orchestrator', name: 'Orchestrator', status: 'active' }]
+  const orchestrator: AgentInfo = {
+    id: 'orchestrator',
+    name: 'Orchestrator',
+    status: workspace ? 'active' : 'active',
+  }
+  if (!workspace) return [orchestrator]
+
+  const subAgents: AgentInfo[] = NODE_LAYOUT.flatMap((layout) => {
+    const node = workspace.nodes.find((n) => n.node_id === layout.node_id)
+    if (!node) return []
+    const config = getNodeAgentConfig(node.type)
+    let status: AgentInfo['status'] = 'idle'
+    if (node.active_agents.length > 0) status = 'active'
+    else if (node.status === 'locked') status = 'offline'
+
+    return [
+      {
+        id: config.id,
+        name: config.name,
+        status,
+        node_id: node.node_id,
+        parentId: 'orchestrator',
+        nodeType: node.type,
+      },
+    ]
+  })
+
+  return [orchestrator, ...subAgents]
 }
 
 const DEFAULT_TODAY_PRIORITY: TodayPriority = {
-  action: 'Analyzing your idea...',
-  reason: 'Agents are researching your startup graph',
+  action: 'Approve the next research node',
+  reason: 'Research will only run after you confirm a specific node.',
   estimatedTime: '—',
 }
 
 interface WorkspaceState {
-  mode: AppMode
   phase: AppPhase
   workspace: Workspace | null
   selectedNodeId: string | null
@@ -48,14 +64,16 @@ interface WorkspaceState {
   integrations: IntegrationInfo[]
   projects: ProjectInfo[]
   pivotBlurredNodes: string[]
-  demoStage: number
   journalOpen: boolean
   exportOpen: boolean
+  settingsOpen: boolean
   onboardingOpen: boolean
   integrationDialogId: string | null
   hasChatted: boolean
   hasExported: boolean
-  setMode: (mode: AppMode) => void
+  orchestratorMessages: ChatMessage[]
+  voiceState: VoiceState
+  orbExpanded: boolean
   setPhase: (phase: AppPhase) => void
   setWorkspace: (workspace: Workspace) => void
   updateNode: (nodeId: string, patch: Partial<GraphNode>) => void
@@ -67,20 +85,22 @@ interface WorkspaceState {
   setAgents: (agents: AgentInfo[]) => void
   setIntegrations: (integrations: IntegrationInfo[]) => void
   setPivotBlurredNodes: (ids: string[]) => void
-  setDemoStage: (stage: number) => void
   setJournalOpen: (open: boolean) => void
   setExportOpen: (open: boolean) => void
+  setSettingsOpen: (open: boolean) => void
   setOnboardingOpen: (open: boolean) => void
   setIntegrationDialogId: (id: string | null) => void
   setHasChatted: (value: boolean) => void
   setHasExported: (value: boolean) => void
+  setOrchestratorMessages: (messages: ChatMessage[]) => void
+  appendOrchestratorMessage: (message: ChatMessage) => void
+  setVoiceState: (state: VoiceState) => void
+  setOrbExpanded: (expanded: boolean) => void
   resetToHome: () => void
   getSelectedNode: () => GraphNode | null
-  isDemo: () => boolean
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
-  mode: DEFAULT_MODE,
   phase: 'intake',
   workspace: null,
   selectedNodeId: null,
@@ -90,35 +110,57 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   awayNotification: '',
   agents: [{ id: 'orchestrator', name: 'Orchestrator', status: 'active' }],
   integrations: INTEGRATION_CATALOG.map((i) => ({ ...i })),
-  projects: MOCK_PROJECTS,
+  projects: [],
   pivotBlurredNodes: [],
-  demoStage: 0,
   journalOpen: false,
   exportOpen: false,
+  settingsOpen: false,
   onboardingOpen: false,
   integrationDialogId: null,
   hasChatted: false,
   hasExported: false,
-  setMode: (mode) => set({ mode }),
+  orchestratorMessages: [],
+  voiceState: 'idle',
+  orbExpanded: false,
   setPhase: (phase) => set({ phase }),
   setWorkspace: (workspace) =>
-    set({
-      workspace,
-      agents: deriveAgents(workspace),
-      selectedNodeId:
-        workspace.nodes.find((n) => n.type === 'market_intelligence')?.node_id ??
-        workspace.nodes[0]?.node_id ??
-        null,
+    set((state) => {
+      const isFirstLoad = state.workspace === null
+      const previousSelection = state.selectedNodeId
+      const selectionStillValid =
+        previousSelection !== null &&
+        workspace.nodes.some((node) => node.node_id === previousSelection)
+
+      let selectedNodeId = previousSelection
+      if (isFirstLoad) {
+        selectedNodeId =
+          workspace.nodes.find((node) => node.type === 'market_intelligence')?.node_id ??
+          workspace.nodes[0]?.node_id ??
+          null
+      } else if (previousSelection === null) {
+        selectedNodeId = null
+      } else if (!selectionStillValid) {
+        selectedNodeId = null
+      }
+
+      return {
+        workspace,
+        agents: deriveAgents(workspace),
+        selectedNodeId,
+      }
     }),
   updateNode: (nodeId, patch) =>
-    set((s) => ({
-      workspace: s.workspace
-        ? {
-            ...s.workspace,
-            nodes: s.workspace.nodes.map((n) => (n.node_id === nodeId ? { ...n, ...patch } : n)),
-          }
-        : null,
-    })),
+    set((s) => {
+      if (!s.workspace) return { workspace: null }
+      const nodes = s.workspace.nodes.map((n) => (n.node_id === nodeId ? { ...n, ...patch } : n))
+      const workspace = { ...s.workspace, nodes }
+      const shouldRefreshAgents =
+        patch.active_agents !== undefined || patch.status !== undefined
+      return {
+        workspace,
+        ...(shouldRefreshAgents ? { agents: deriveAgents(workspace) } : {}),
+      }
+    }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   setTodayPriority: (priority) => set({ todayPriority: priority }),
   setNotifications: (notifications) => set({ notifications }),
@@ -127,16 +169,21 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setAgents: (agents) => set({ agents }),
   setIntegrations: (integrations) => set({ integrations }),
   setPivotBlurredNodes: (ids) => set({ pivotBlurredNodes: ids }),
-  setDemoStage: (stage) => set({ demoStage: stage }),
   setJournalOpen: (open) => set({ journalOpen: open }),
   setExportOpen: (open) => set({ exportOpen: open }),
+  setSettingsOpen: (open) => set({ settingsOpen: open }),
   setOnboardingOpen: (open) => set({ onboardingOpen: open }),
   setIntegrationDialogId: (id) => set({ integrationDialogId: id }),
   setHasChatted: (value) => set({ hasChatted: value }),
   setHasExported: (value) => set({ hasExported: value }),
-  resetToHome: () =>
+  setOrchestratorMessages: (messages) => set({ orchestratorMessages: messages }),
+  appendOrchestratorMessage: (message) =>
+    set((s) => ({ orchestratorMessages: [...s.orchestratorMessages, message] })),
+  setVoiceState: (state) => set({ voiceState: state }),
+  setOrbExpanded: (expanded) => set({ orbExpanded: expanded }),
+  resetToHome: () => {
+    resetVoiceSession()
     set({
-      mode: DEFAULT_MODE,
       phase: 'intake',
       workspace: null,
       selectedNodeId: null,
@@ -146,20 +193,23 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       awayNotification: '',
       agents: [{ id: 'orchestrator', name: 'Orchestrator', status: 'active' }],
       integrations: INTEGRATION_CATALOG.map((i) => ({ ...i })),
-      projects: MOCK_PROJECTS,
+      projects: [],
       pivotBlurredNodes: [],
-      demoStage: 0,
       journalOpen: false,
       exportOpen: false,
+      settingsOpen: false,
       onboardingOpen: false,
       integrationDialogId: null,
       hasChatted: false,
       hasExported: false,
-    }),
+      orchestratorMessages: [],
+      voiceState: 'idle',
+      orbExpanded: false,
+    })
+  },
   getSelectedNode: () => {
     const { workspace, selectedNodeId } = get()
     if (!workspace || !selectedNodeId) return null
     return workspace.nodes.find((n) => n.node_id === selectedNodeId) ?? null
   },
-  isDemo: () => get().mode === 'demo',
 }))

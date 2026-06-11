@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from agents.store_protocol import ResearchTask, _coerce_node_type, _merge_source_pills, _source_pills
+from agents.store_protocol import ResearchTask, _coerce_node_type, _infer_task_type, _merge_source_pills, _source_pills, publish_workspace_update
 from db import collections as col
 from graph.schema import (
     BaseNode,
@@ -77,7 +77,9 @@ class AtlasGraphStore:
             snapshots.append(create_snapshot(node.confidence, f"{confidence_before}% -> {node.confidence}%"))
             node.historical_snapshots = snapshots
 
+        workspace.nodes = compute_unlock_states(workspace.nodes)
         await self.save_workspace(workspace)
+        await publish_workspace_update(idea_id, workspace)
 
         if before is None or before.confidence != node.confidence or before.status != node.status:
             await self._append_journal(
@@ -121,13 +123,24 @@ class AtlasGraphStore:
         )
 
     async def log_dead_end(self, workspace_id: str, task: str, reason: str) -> None:
+        node_type = _coerce_node_type(_infer_task_type(task))
+        timestamp = _now_utc().isoformat()
         await self.dead_ends.insert_one(
             {
                 "workspace_id": workspace_id,
                 "task": task,
                 "reason": reason,
-                "timestamp": _now_utc().isoformat(),
+                "timestamp": timestamp,
             }
+        )
+        await self._append_journal(
+            idea_id=workspace_id,
+            node_type=node_type.value,
+            event="research_dead_end",
+            reason=reason,
+            evidence=[],
+            confidence_before=0,
+            confidence_after=0,
         )
 
     async def search_knowledge_base(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
@@ -196,6 +209,8 @@ class AtlasGraphStore:
                 "task_id": task.task_id,
                 "task": task.task,
                 "score": score,
+                "status": "partial" if result.get("partial") else "accepted",
+                "reason": result.get("critique_reason", ""),
                 "result": result,
                 "timestamp": _now_utc().isoformat(),
             }

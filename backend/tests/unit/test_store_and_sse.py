@@ -41,7 +41,7 @@ def test_memory_store_commit_research_result_creates_node_and_source_pills(memor
 
     assert node.type == NodeType.AUDIENCE
     assert node.confidence == 87
-    assert node.status.value == "validated"
+    assert node.status.value == "locked"
     assert node.source_pills[0].label == "Reddit"
     assert node.source_pills[0].count == 2
     assert len(workspace.nodes) == 2
@@ -50,15 +50,15 @@ def test_memory_store_commit_research_result_creates_node_and_source_pills(memor
 def test_memory_store_commit_preserves_existing_source_pills(memory_store, workspace):
     async def run():
         first = ResearchTask(workspace_id=workspace.idea_id, task="reddit", type="audience", tools=["reddit"], priority=1)
-        second = ResearchTask(workspace_id=workspace.idea_id, task="exa", type="audience", tools=["exa"], priority=1)
+        second = ResearchTask(workspace_id=workspace.idea_id, task="firecrawl", type="audience", tools=["firecrawl"], priority=1)
         await memory_store.commit_research_result(workspace.idea_id, first, {"summary": "a", "sources": ["reddit"], "items": [{"source": "reddit"}]}, 82)
-        return await memory_store.commit_research_result(workspace.idea_id, second, {"summary": "b", "sources": ["exa"], "items": [{"source": "exa"}, {"source": "exa"}]}, 84)
+        return await memory_store.commit_research_result(workspace.idea_id, second, {"summary": "b", "sources": ["firecrawl"], "items": [{"source": "firecrawl"}, {"source": "firecrawl"}]}, 84)
 
     node = asyncio.run(run())
 
     counts = {pill.label: pill.count for pill in node.source_pills}
-    assert counts == {"Reddit": 1, "Exa": 2}
-    assert node.sources == ["exa", "reddit"]
+    assert counts == {"Reddit": 1, "Firecrawl": 2}
+    assert node.sources == ["firecrawl", "reddit"]
 
 
 def test_sse_feed_replays_history_and_encodes_events():

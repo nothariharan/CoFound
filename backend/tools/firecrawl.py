@@ -6,10 +6,8 @@ import asyncio
 import json
 import os
 from typing import Any
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-
-from tools import exa_search
 
 
 async def scrape(query_or_url: str, limit: int = 3) -> dict[str, Any]:
@@ -22,16 +20,51 @@ async def scrape(query_or_url: str, limit: int = 3) -> dict[str, Any]:
     if not key:
         return _mock(query_or_url, limit)
 
-    exa = await exa_search.search(query_or_url, num_results=limit)
-    urls = [item.get("url") for item in exa.get("items", []) if item.get("url")]
+    search_results = await search(query_or_url, limit=limit)
+    urls = [item.get("url") for item in search_results.get("items", []) if item.get("url")]
     if not urls:
-        return _mock(query_or_url, limit)
+        return search_results
 
     gathered = await asyncio.gather(*[asyncio.to_thread(_scrape_sync, url, key) for url in urls[:limit]])
     items: list[dict[str, Any]] = []
     for block in gathered:
         items.extend(block.get("items", []))
-    return {"tool": "firecrawl", "query": query_or_url, "items": items[:limit], "sources": ["firecrawl", "exa"]}
+    return {"tool": "firecrawl", "query": query_or_url, "items": items[:limit], "sources": ["firecrawl"]}
+
+
+async def search(query: str, limit: int = 5) -> dict[str, Any]:
+    key = os.getenv("FIRECRAWL_API_KEY", "").strip()
+    if not key:
+        return _mock(query, limit)
+    return await asyncio.to_thread(_search_sync, query, key, limit)
+
+
+def _search_sync(query: str, key: str, limit: int) -> dict[str, Any]:
+    payload = {"query": query, "limit": limit}
+    req = Request(
+        "https://api.firecrawl.dev/v1/search",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=45) as response:  # noqa: S310
+            data = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError) as exc:
+        return {"tool": "firecrawl", "query": query, "items": [], "sources": ["firecrawl"], "error": str(exc)}
+
+    raw_items = data.get("data") or []
+    items = [
+        {
+            "source": "firecrawl",
+            "title": item.get("title") or item.get("url") or query,
+            "url": item.get("url"),
+            "snippet": item.get("description") or item.get("markdown") or item.get("content") or "",
+        }
+        for item in raw_items[:limit]
+        if isinstance(item, dict)
+    ]
+    return {"tool": "firecrawl", "query": query, "items": items, "sources": ["firecrawl"]}
 
 
 def _scrape_sync(url: str, key: str) -> dict[str, Any]:
@@ -61,9 +94,13 @@ def _mock(query: str, limit: int) -> dict[str, Any]:
         "tool": "firecrawl",
         "query": query,
         "items": [
-            {"source": "firecrawl", "title": f"Landing page pattern: {query}", "url": None, "snippet": "Mock Firecrawl result: competitors emphasize speed, integrations, ROI calculators, and social proof."},
-            {"source": "firecrawl", "title": f"Messaging gaps: {query}", "url": None, "snippet": "Mock Firecrawl result: few competitors speak directly to the niche workflow or first-week activation."},
+            {
+                "source": "firecrawl",
+                "title": f"Firecrawl unavailable for: {query}",
+                "url": None,
+                "snippet": "Firecrawl API key is missing or the request failed; connect Firecrawl for live web evidence.",
+            },
         ][:limit],
         "sources": ["firecrawl"],
-        "mock": True,
+        "fallback": True,
     }

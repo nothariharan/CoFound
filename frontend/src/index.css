@@ -140,6 +140,14 @@ body {
   fill: var(--border);
 }
 
+.react-flow__edge.edge-agent-active .react-flow__edge-path {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--primary) 55%, transparent));
+}
+
+.react-flow__edge.edge-agent-active.animated .react-flow__edge-path {
+  stroke-linecap: round;
+}
+
 /* Pivot blur effect */
 .node-pivot-blur {
   filter: blur(3px);

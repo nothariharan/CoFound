@@ -1,6 +1,7 @@
 import {
   Bot,
   ChevronDown,
+  Compass,
   Download,
   GitBranch,
   History,
@@ -8,7 +9,6 @@ import {
   Mail,
   MessageSquare,
   Plus,
-  Search,
   Settings,
 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
@@ -30,16 +30,17 @@ export function LeftRail() {
     workspace,
     agents,
     integrations,
-    projects,
-    mode,
+    selectedNodeId,
+    setSelectedNodeId,
     setJournalOpen,
     setExportOpen,
+    setSettingsOpen,
+    setOnboardingOpen,
     setIntegrations,
     integrationDialogId,
     setIntegrationDialogId,
   } = useWorkspaceStore()
   const { fetchIntegrations } = useAgentActions()
-  const isDemo = mode === 'demo'
 
   const connectTarget = useMemo(
     () => integrations.find((i) => i.id === integrationDialogId) ?? null,
@@ -47,19 +48,18 @@ export function LeftRail() {
   )
 
   useEffect(() => {
-    if (!workspace?.idea_id || isDemo) return
+    if (!workspace?.idea_id) return
     void fetchIntegrations(workspace.idea_id)
       .then((status) => {
         setIntegrations(mergeIntegrationStatus(INTEGRATION_CATALOG.map((i) => ({ ...i })), status))
       })
       .catch(() => {})
-  }, [workspace?.idea_id, fetchIntegrations, setIntegrations, isDemo])
+  }, [workspace?.idea_id, fetchIntegrations, setIntegrations])
 
   const projectList = useMemo(() => {
-    if (isDemo) return projects
     if (!workspace) return []
     return [{ id: workspace.idea_id, name: workspace.workspace_name, active: true }]
-  }, [isDemo, projects, workspace])
+  }, [workspace])
 
   const handleIntegrationClick = (integration: IntegrationInfo) => {
     if (integration.status === 'coming_soon') return
@@ -68,6 +68,17 @@ export function LeftRail() {
       setIntegrationDialogId(integration.id)
     }
   }
+
+  const orchestrator = agents.find((a) => a.id === 'orchestrator')
+  const subAgents = agents.filter((a) => a.parentId === 'orchestrator')
+
+  const agentStatusDot = (status: 'active' | 'idle' | 'offline') =>
+    cn(
+      'size-1.5 shrink-0 rounded-full',
+      status === 'active' && 'bg-status-validated',
+      status === 'idle' && 'bg-status-needs-work',
+      status === 'offline' && 'bg-muted',
+    )
 
   return (
     <>
@@ -123,6 +134,15 @@ export function LeftRail() {
                   </button>
                 ))}
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 h-8 w-full gap-1.5 text-xs"
+                onClick={() => setOnboardingOpen(true)}
+              >
+                <Compass className="size-3.5" />
+                Guide Me!
+              </Button>
             </div>
           )}
 
@@ -133,18 +153,37 @@ export function LeftRail() {
               <Bot className="size-3.5 text-muted-foreground" />
               <span className="text-xs font-medium text-foreground">Agents</span>
             </div>
-            <div className="flex flex-col gap-2">
-              {agents.map((agent) => (
-                <div key={agent.id} className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{agent.name}</span>
-                  <span
-                    className={cn(
-                      'size-1.5 rounded-full',
-                      agent.status === 'active' ? 'bg-status-validated' : 'bg-muted',
-                    )}
-                    aria-label={agent.status}
-                  />
-                </div>
+            <div className="flex flex-col gap-0.5">
+              {orchestrator && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedNodeId(null)}
+                  className={cn(
+                    'flex items-center justify-between rounded-md px-2 py-1.5 text-left transition-colors',
+                    selectedNodeId === null
+                      ? 'bg-accent text-foreground'
+                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                  )}
+                >
+                  <span className="text-xs font-medium">{orchestrator.name}</span>
+                  <span className={agentStatusDot(orchestrator.status)} aria-label={orchestrator.status} />
+                </button>
+              )}
+              {subAgents.map((agent) => (
+                <button
+                  key={agent.id}
+                  type="button"
+                  onClick={() => agent.node_id && setSelectedNodeId(agent.node_id)}
+                  className={cn(
+                    'flex items-center justify-between rounded-md py-1.5 pl-5 pr-2 text-left transition-colors',
+                    selectedNodeId === agent.node_id
+                      ? 'bg-accent text-foreground'
+                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                  )}
+                >
+                  <span className="text-xs">{agent.name}</span>
+                  <span className={agentStatusDot(agent.status)} aria-label={agent.status} />
+                </button>
               ))}
             </div>
           </div>
@@ -190,7 +229,12 @@ export function LeftRail() {
               <Download className="size-3.5" />
               Export Workspace
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 justify-start gap-2 px-2 text-xs text-muted-foreground hover:text-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 justify-start gap-2 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setSettingsOpen(true)}
+            >
               <Settings className="size-3.5" />
               Settings
             </Button>
@@ -219,8 +263,6 @@ function getIntegrationIcon(id: string) {
       return Mail
     case 'slack':
       return MessageSquare
-    case 'gummysearch':
-      return Search
     case 'reddit':
       return MessageSquare
     default:

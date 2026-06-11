@@ -1,4 +1,4 @@
-import { Bell, Clock } from 'lucide-react'
+import { Bell, Clock, Compass } from 'lucide-react'
 import { useGoHome } from '@/hooks/useGoHome'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 export function TopBar() {
   const goHome = useGoHome()
-  const { workspace, healthScore } = useWorkspaceStore()
+  const { workspace, healthScore, setOnboardingOpen } = useWorkspaceStore()
   const score = healthScore || (workspace?.nodes.length
     ? Math.round(workspace.nodes.reduce((sum, n) => sum + n.confidence, 0) / workspace.nodes.length)
     : 0)
@@ -30,6 +30,16 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-4">
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden gap-1.5 sm:inline-flex"
+          onClick={() => setOnboardingOpen(true)}
+        >
+          <Compass className="size-3.5" />
+          Guide Me!
+        </Button>
+
         <div className="flex items-center gap-2 rounded-md bg-surface-elevated px-2 py-0.5">
           <span className="text-xs text-muted-foreground">Startup Health</span>
           <span className="text-sm font-medium tabular-nums text-foreground">{score}</span>

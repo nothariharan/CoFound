@@ -228,7 +228,7 @@ await feed.publish(workspace_id, {
 
 ---
 
-## Mock Strategy (Until Track A Merges)
+## Local Fallback Strategy (Until Track A Merges)
 
 Use `MemoryGraphStore` implementing the protocol from `00_CONTRACT_FREEZE.md`. Do not block on Atlas — build agents against the protocol interface. When Track A merges, swap injection to `AtlasGraphStore` with zero agent code changes.
 

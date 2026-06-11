@@ -1,8 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowUp } from 'lucide-react'
 import type { ChatMessage, GraphNode } from '@/types'
-import { MOCK_CHAT_MESSAGES } from '@/mock/workspace'
-import { triggerPivotDemo } from '@/mock/demoEngine'
 import { useAgentActions } from '@/hooks/useAgentActions'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { Button } from '@/components/ui/button'
@@ -15,13 +13,19 @@ interface NodeChatProps {
 }
 
 export function NodeChat({ node }: NodeChatProps) {
-  const mode = useWorkspaceStore((s) => s.mode)
-  const isDemo = mode === 'demo'
   const [input, setInput] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>(mode === 'demo' ? MOCK_CHAT_MESSAGES : [])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [sending, setSending] = useState(false)
   const { sendDialogue, sendPivot } = useAgentActions()
-  const { workspace, setPivotBlurredNodes, setHasChatted } = useWorkspaceStore()
+  const { workspace, pivotBlurredNodes, setPivotBlurredNodes, setHasChatted } = useWorkspaceStore()
+
+  useEffect(() => {
+    if (!workspace || pivotBlurredNodes.length === 0) return
+    const stillActive = workspace.nodes.some(
+      (graphNode) => pivotBlurredNodes.includes(graphNode.node_id) && graphNode.active_agents.length > 0,
+    )
+    if (!stillActive) setPivotBlurredNodes([])
+  }, [workspace, pivotBlurredNodes, setPivotBlurredNodes])
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,52 +38,21 @@ export function NodeChat({ node }: NodeChatProps) {
     setHasChatted(true)
 
     try {
-      if (isDemo) {
-        if (userMsg.toLowerCase().includes('pivot')) {
-          triggerPivotDemo()
-          setTimeout(() => {
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: 'agent',
-                agentName: 'Diff Classifier',
-                text: 'Pivot detected. Re-researching Audience and Competitors while keeping Core Idea intact.',
-              },
-            ])
-          }, 500)
-          return
-        }
-        setTimeout(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: 'agent',
-              agentName: 'Researcher',
-              text: `Based on current ${node.title} data, I can help refine this further. What specific aspect would you like to explore?`,
-            },
-          ])
-        }, 600)
-        return
-      }
-
       if (!workspace?.idea_id) return
 
       if (userMsg.toLowerCase().includes('pivot')) {
-        setPivotBlurredNodes(
-          workspace.nodes
-            .filter((n) => ['audience', 'competitors', 'revenue', 'market_intelligence'].includes(n.type))
-            .map((n) => n.node_id),
-        )
         const pivot = await sendPivot(workspace.idea_id, userMsg)
+        setPivotBlurredNodes(
+          workspace.nodes.filter((n) => pivot.nodes_affected.includes(n.type)).map((n) => n.node_id),
+        )
         setMessages((prev) => [
           ...prev,
           {
             role: 'agent',
             agentName: 'Diff Classifier',
-            text: `Pivot detected. Re-researching ${pivot.nodes_affected.join(', ').replace(/_/g, ' ')} while keeping ${pivot.nodes_unchanged.slice(0, 3).join(', ').replace(/_/g, ' ')} intact.`,
+            text: `Pivot detected. ${pivot.nodes_affected.join(', ').replace(/_/g, ' ')} now need your approval before re-research. Preserved ${pivot.nodes_unchanged.slice(0, 3).join(', ').replace(/_/g, ' ')}.`,
           },
         ])
-        setTimeout(() => setPivotBlurredNodes([]), 3000)
         return
       }
 

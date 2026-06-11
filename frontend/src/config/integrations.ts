@@ -22,7 +22,7 @@ export const INTEGRATION_CATALOG: IntegrationInfo[] = [
     label: 'Reddit',
     connected: true,
     status: 'connected',
-    description: 'Reddit research is always on — agents scan communities for pain points automatically.',
+    description: 'Reddit research is available when you approve a node that needs community evidence.',
   },
   {
     id: 'gmail',
@@ -38,18 +38,11 @@ export const INTEGRATION_CATALOG: IntegrationInfo[] = [
     status: 'coming_soon',
     description: 'Team notifications and agent alerts — coming soon.',
   },
-  {
-    id: 'gummysearch',
-    label: 'GummySearch',
-    connected: false,
-    status: 'coming_soon',
-    description: 'Reddit audience research via GummySearch — coming soon.',
-  },
 ]
 
 export function mergeIntegrationStatus(
   catalog: IntegrationInfo[],
-  status: { github: boolean; posthog: boolean; reddit: boolean; gummysearch: boolean },
+  status: { github: boolean; posthog: boolean; reddit: boolean },
 ): IntegrationInfo[] {
   return catalog.map((item) => {
     if (item.status === 'coming_soon') return item
@@ -61,9 +54,6 @@ export function mergeIntegrationStatus(
     }
     if (item.id === 'reddit') {
       return { ...item, connected: status.reddit, status: 'connected' }
-    }
-    if (item.id === 'gummysearch') {
-      return { ...item, connected: status.gummysearch, status: status.gummysearch ? 'connected' : 'coming_soon' }
     }
     return item
   })

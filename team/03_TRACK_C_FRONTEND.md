@@ -77,7 +77,7 @@ backend/main.py                  # Router registration (you merge all routes)
 - [ ] **C25.** Growth Node displays ranked recommendations
 - [ ] **C26.** Today's Priority bar wired to `GET /api/priority`
 
-### Phase 5 — Export & Demo (Day 10)
+### Phase 5 — Export & Verification (Day 10)
 
 - [ ] **C27.** Merge Track B PR #5 (Export zip)
 - [ ] **C28.** Export modal (`components/export/ExportModal.tsx`):
@@ -85,7 +85,7 @@ backend/main.py                  # Router registration (you merge all routes)
   - Show file list
   - Download zip
 - [ ] **C29.** Export button enabled when graph reaches Build stage
-- [ ] **C30.** Run full demo script (`docs/demo_script.md`) end-to-end
+- [ ] **C30.** Run the live workflow end-to-end
 - [ ] **C31.** Record 3-minute demo video
 - [ ] **C32.** Final merge + README update
 

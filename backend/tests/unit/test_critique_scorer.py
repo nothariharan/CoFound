@@ -27,13 +27,43 @@ def test_critique_refines_medium_quality_result(monkeypatch):
     result_payload = {
         "summary": "Some useful signal",
         "sources": ["reddit"],
-        "items": [{"source": "reddit", "title": "pain"}, {"source": "reddit", "title": "more pain"}],
+        "items": [
+            {"source": "reddit", "title": "pain", "url": "https://reddit.com/a"},
+            {"source": "reddit", "title": "more pain", "url": "https://reddit.com/b"},
+        ],
     }
 
     result = asyncio.run(scorer.score(result_payload, "Mine pain"))
 
     assert 50 <= result.score < 80
     assert result.verdict == "refine"
+    assert result.accept is False
+
+
+def test_critique_rejects_fallback_items_even_with_summary(monkeypatch):
+    async def optimistic(prompt: str, system: str = "") -> str:
+        return json.dumps({"score": 90, "verdict": "accept", "reason": "ok", "accept": True})
+
+    monkeypatch.setattr(scorer, "generate_flash", optimistic)
+    result_payload = {
+        "summary": "Unavailable placeholder",
+        "sources": ["reddit", "scrapling"],
+        "items": [
+            {
+                "source": "web",
+                "title": "Web scrape unavailable",
+                "url": None,
+                "snippet": "Web scrape failed after HTTP + stealth attempts.",
+                "fallback": True,
+            }
+        ],
+        "fallback": True,
+    }
+
+    result = asyncio.run(scorer.score(result_payload, "Mine pain"))
+
+    assert result.score < 50
+    assert result.verdict == "reject"
     assert result.accept is False
 
 

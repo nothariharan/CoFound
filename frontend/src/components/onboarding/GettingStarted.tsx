@@ -27,7 +27,6 @@ export function GettingStarted() {
     onboardingOpen,
     setOnboardingOpen,
     workspace,
-    mode,
     integrations,
     hasChatted,
     hasExported,
@@ -115,10 +114,10 @@ export function GettingStarted() {
   const doneCount = steps.filter((s) => completed[s.id]).length
 
   useEffect(() => {
-    if (!onboardingOpen || mode !== 'live') return
+    if (!onboardingOpen) return
     const timer = window.setTimeout(() => setCoachMark('priority'), 1200)
     return () => window.clearTimeout(timer)
-  }, [onboardingOpen, mode])
+  }, [onboardingOpen])
 
   const handleDismiss = () => {
     if (workspace?.idea_id) setOnboardingDismissed(workspace.idea_id)
@@ -126,7 +125,7 @@ export function GettingStarted() {
     setCoachMark(null)
   }
 
-  if (!onboardingOpen || mode !== 'live') return null
+  if (!onboardingOpen) return null
 
   return (
     <>

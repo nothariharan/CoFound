@@ -1,9 +1,7 @@
 import { useRef, useState } from 'react'
 import { useWorkspace } from '@/hooks/useWorkspace'
 import { useIntakeAnimation } from '@/hooks/useAnimations'
-import { DEMO_IDEA } from '@/mock/workspace'
 import { clearSavedWorkspaceId, getSavedWorkspaceId } from '@/config/storage'
-import { useWorkspaceStore } from '@/store/workspaceStore'
 import { AppCursorProvider } from '@/components/cursor/AppCursorProvider'
 import { Button } from '@/components/ui/button'
 import AnimatedGradientBackground from '@/components/ui/animated-gradient-background'
@@ -25,28 +23,28 @@ const BRANDED_GRADIENT = {
 export function IdeaInput() {
   const [idea, setIdea] = useState('')
   const [resuming, setResuming] = useState(false)
+  const [framing, setFraming] = useState(false)
   const { createWorkspace, fetchWorkspace, loading, error } = useWorkspace()
-  const setMode = useWorkspaceStore((s) => s.setMode)
   const containerRef = useIntakeAnimation()
   const formRef = useRef<HTMLFormElement>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!idea.trim() || loading) return
-    setMode('live')
-    await createWorkspace(idea.trim())
-  }
-
-  const handleDemo = async () => {
-    setIdea(DEMO_IDEA)
-    setMode('demo')
-    await createWorkspace(DEMO_IDEA)
+    setFraming(true)
+    try {
+      await Promise.all([
+        createWorkspace(idea.trim()),
+        new Promise((resolve) => window.setTimeout(resolve, 900)),
+      ])
+    } finally {
+      setFraming(false)
+    }
   }
 
   const handleGetStarted = async () => {
     const savedId = getSavedWorkspaceId()
     if (savedId) {
-      setMode('live')
       setResuming(true)
       try {
         await fetchWorkspace(savedId)
@@ -78,15 +76,6 @@ export function IdeaInput() {
           <span className="text-lg font-semibold tracking-tight text-foreground md:text-xl">CoFound</span>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleDemo}
-            disabled={loading}
-            className="intake-nav-btn h-9 rounded-lg border-border bg-card/60 px-4 text-sm text-foreground backdrop-blur-sm hover:bg-surface-elevated"
-          >
-            Load demo
-          </Button>
           <Button
             type="button"
             onClick={handleGetStarted}
@@ -121,6 +110,12 @@ export function IdeaInput() {
               assumptions, building your product, and scaling growth — all from your single idea.
             </p>
 
+            {framing && (
+              <div className="mb-4 rounded-lg border border-primary/30 bg-card/70 px-4 py-3 text-center text-sm text-foreground backdrop-blur-sm">
+                Framing your startup, naming the workspace, and preparing the first decision point...
+              </div>
+            )}
+
             <form
               ref={formRef}
               onSubmit={handleSubmit}
@@ -143,11 +138,11 @@ export function IdeaInput() {
                 />
                 <Button
                   type="submit"
-                  disabled={!idea.trim() || loading}
+                  disabled={!idea.trim() || loading || framing}
                   className="h-10 shrink-0 gap-2 rounded-lg bg-primary px-5 text-sm text-primary-foreground hover:bg-primary/90"
                 >
-                  {loading ? 'Starting...' : 'Continue'}
-                  {!loading && (
+                  {loading || framing ? 'Framing...' : 'Continue'}
+                  {!loading && !framing && (
                     <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
                       <path
                         d="M3 8h10M9 4l4 4-4 4"

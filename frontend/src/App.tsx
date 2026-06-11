@@ -13,17 +13,19 @@ import { StartupCanvas } from '@/components/canvas/StartupCanvas'
 import { DecisionJournal } from '@/components/journal/DecisionJournal'
 import { ExportModal } from '@/components/export/ExportModal'
 import { GettingStarted } from '@/components/onboarding/GettingStarted'
+import { SettingsDialog } from '@/components/settings/SettingsDialog'
+import { OrchestratorOrb } from '@/components/orchestrator/OrchestratorOrb'
 
 function Dashboard() {
   const shellRef = useShellEntrance()
-  const { workspace, mode, setOnboardingOpen } = useWorkspaceStore()
+  const { workspace, setOnboardingOpen } = useWorkspaceStore()
 
   useEffect(() => {
-    if (mode !== 'live' || !workspace?.idea_id) return
+    if (!workspace?.idea_id) return
     if (!getOnboardingDismissed(workspace.idea_id)) {
       setOnboardingOpen(true)
     }
-  }, [workspace?.idea_id, mode, setOnboardingOpen])
+  }, [workspace?.idea_id, setOnboardingOpen])
 
   return (
     <div ref={shellRef} className="flex h-dvh flex-col">
@@ -37,12 +39,14 @@ function Dashboard() {
               <StartupCanvas />
             </div>
           </ReactFlowProvider>
+          <OrchestratorOrb />
         </main>
         <RightPanel />
       </div>
       <ActionBar />
       <DecisionJournal />
       <ExportModal />
+      <SettingsDialog />
       <GettingStarted />
     </div>
   )
@@ -51,12 +55,11 @@ function Dashboard() {
 function App() {
   const phase = useWorkspaceStore((s) => s.phase)
   const workspace = useWorkspaceStore((s) => s.workspace)
-  const mode = useWorkspaceStore((s) => s.mode)
 
   useEffect(() => {
-    if (mode !== 'live' || !workspace?.idea_id) return
+    if (!workspace?.idea_id) return
     localStorage.setItem(WORKSPACE_KEY, workspace.idea_id)
-  }, [workspace?.idea_id, mode])
+  }, [workspace?.idea_id])
 
   if (phase === 'intake') {
     return <IdeaInput />

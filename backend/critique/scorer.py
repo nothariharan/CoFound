@@ -56,16 +56,20 @@ def _calibrate_score(model_score: int, heuristic: int) -> int:
 
 def _heuristic_score(result: dict[str, Any]) -> int:
     items = result.get("items") or []
+    real_items = [item for item in items if isinstance(item, dict) and item.get("url") and not item.get("fallback")]
+    fallback_items = [item for item in items if isinstance(item, dict) and (item.get("fallback") or not item.get("url"))]
     score = 25
-    score += min(35, len(items) * 10)
+    score += min(35, len(real_items) * 10)
     if result.get("summary"):
         score += 15
     if len(set(result.get("sources") or [])) >= 2:
         score += 10
-    if any((item.get("url") for item in items if isinstance(item, dict))):
+    if len(real_items) >= 2:
         score += 10
-    if result.get("error"):
+    if result.get("fallback") or result.get("error"):
         score -= 25
+    if fallback_items and not real_items:
+        score -= 20
     return max(0, min(100, score))
 
 

@@ -31,7 +31,8 @@ def _get_funnel_sync(project_id: str, api_key: str) -> dict[str, Any]:
 def _mock() -> dict[str, Any]:
     return {
         "tool": "posthog",
-        "mock": True,
+        "fallback": True,
+        "label": "PostHog not connected; using minimal fallback funnel",
         "sources": ["posthog"],
         "funnel": [
             {"step": "visit", "conversion": 1.0, "previous_conversion": 1.0},

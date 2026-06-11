@@ -23,7 +23,7 @@ async def _generate_or_fallback(kind: str, context: dict, fallback: str) -> str:
     try:
         prompt = f"Generate {kind} for this startup workspace. Use real graph data, no placeholders.\n{context}"
         text = await generate_pro(prompt[:18000], system="You are an export agent creating concise handoff docs for builders.")
-        return text if "Mock Gemini response" not in text else fallback
+        return text if "Gemini is not configured" not in text else fallback
     except Exception:
         return fallback
 

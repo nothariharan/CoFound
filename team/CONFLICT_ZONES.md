@@ -139,7 +139,7 @@ When the same file appears in two PRs:
 
 ## Files Safe for Anyone (Low Conflict Risk)
 
-- `docs/demo_script.md`
+- `docs/`
 - `team/` directory (Lead maintains)
 - `cloud_run/` (Track B owns but low touch)
 - Test scripts in PR descriptions (not committed)

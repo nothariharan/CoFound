@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { useAgentActions } from '@/hooks/useAgentActions'
-import { MOCK_EXPORT_FILES } from '@/mock/workspace'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,10 +13,9 @@ import {
 } from '@/components/ui/dialog'
 
 export function ExportModal() {
-  const { exportOpen, setExportOpen, workspace, mode, setHasExported } = useWorkspaceStore()
-  const isDemo = mode === 'demo'
+  const { exportOpen, setExportOpen, workspace, setHasExported } = useWorkspaceStore()
   const { requestExport } = useAgentActions()
-  const [files, setFiles] = useState<string[]>(mode === 'demo' ? MOCK_EXPORT_FILES : [])
+  const [files, setFiles] = useState<string[]>([])
   const [exportUrl, setExportUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +37,7 @@ export function ExportModal() {
 
   const handleOpenChange = (open: boolean) => {
     setExportOpen(open)
-    if (open && workspace?.idea_id && !isDemo) {
+    if (open && workspace?.idea_id) {
       void loadExportPreview()
     }
     if (!open) {
@@ -48,20 +46,6 @@ export function ExportModal() {
   }
 
   const handleExport = () => {
-    if (isDemo) {
-      const content = files.map((f) => `- ${f}`).join('\n')
-      const blob = new Blob([`CoFounder Export\n\n${content}`], { type: 'text/plain' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'cofounder-export.txt'
-      a.click()
-      URL.revokeObjectURL(url)
-      setHasExported(true)
-      setExportOpen(false)
-      return
-    }
-
     if (exportUrl) {
       window.open(exportUrl, '_blank')
       setHasExported(true)
@@ -80,7 +64,12 @@ export function ExportModal() {
         </DialogHeader>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="flex flex-col gap-2 py-2">
-          {(files.length ? files : MOCK_EXPORT_FILES).map((file) => (
+          {files.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {loading ? 'Generating export package...' : 'Open the export to generate files.'}
+            </p>
+          )}
+          {files.map((file) => (
             <div
               key={file}
               className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-foreground"
@@ -94,7 +83,7 @@ export function ExportModal() {
           <Button variant="outline" onClick={() => setExportOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleExport} disabled={loading || (!isDemo && !exportUrl)}>
+          <Button onClick={handleExport} disabled={loading || !exportUrl}>
             {loading ? 'Generating...' : 'Download'}
           </Button>
         </DialogFooter>

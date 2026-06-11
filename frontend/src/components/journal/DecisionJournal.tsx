@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { useAgentActions } from '@/hooks/useAgentActions'
-import { MOCK_JOURNAL } from '@/mock/workspace'
 import type { JournalEntry } from '@/types'
 import { formatRelativeTime } from '@/utils/formatters'
 import {
@@ -16,10 +15,9 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 
 export function DecisionJournal() {
-  const { journalOpen, setJournalOpen, setSelectedNodeId, workspace, mode } = useWorkspaceStore()
-  const isDemo = mode === 'demo'
+  const { journalOpen, setJournalOpen, setSelectedNodeId, workspace } = useWorkspaceStore()
   const { fetchJournal } = useAgentActions()
-  const [entries, setEntries] = useState<JournalEntry[]>(isDemo ? MOCK_JOURNAL : [])
+  const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -27,9 +25,9 @@ export function DecisionJournal() {
     setLoading(true)
     fetchJournal(workspace.idea_id)
       .then(setEntries)
-      .catch(() => setEntries(isDemo ? MOCK_JOURNAL : []))
+      .catch(() => setEntries([]))
       .finally(() => setLoading(false))
-  }, [journalOpen, workspace?.idea_id, fetchJournal, isDemo])
+  }, [journalOpen, workspace?.idea_id, fetchJournal])
 
   return (
     <Dialog open={journalOpen} onOpenChange={setJournalOpen}>

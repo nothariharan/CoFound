@@ -13,6 +13,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react'
+import { getNodeAgentConfig } from '@/config/nodeAgents'
 import type { GraphNode, NodeType } from '@/types'
 import { ConfidenceRing } from '@/components/canvas/ConfidenceRing'
 import { SourcePills } from '@/components/canvas/SourcePills'
@@ -71,17 +72,17 @@ function NodeCardComponent({ data }: NodeProps & { data: NodeCardData }) {
       onClick={() => !isLocked && onSelect(node.node_id)}
       style={!isLocked ? { borderLeft: `2px solid ${typeColor}` } : undefined}
       className={cn(
-        'relative w-[240px] cursor-pointer rounded-lg border bg-card p-3.5 transition-colors',
+        'relative w-[240px] cursor-grab rounded-lg border bg-card p-3.5 transition-colors active:cursor-grabbing',
         selected ? 'border-primary ring-1 ring-primary/30' : 'border-border hover:border-muted-foreground/40',
-        isLocked && 'cursor-default opacity-60',
+        isLocked && 'cursor-grab opacity-60',
       )}
     >
       <Handle type="target" position={Position.Top} className="!size-2 !border-border !bg-border" />
       <Handle type="source" position={Position.Bottom} className="!size-2 !border-border !bg-border" />
 
-      {node.active_agents.map((agent) => (
-        <AgentChip key={agent} label={agent.replace('researcher_', 'R')} active />
-      ))}
+      {node.active_agents.length > 0 && (
+        <AgentChip key={node.node_id} label={getNodeAgentConfig(node.type).name} active />
+      )}
 
       <div className="mb-2.5 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">

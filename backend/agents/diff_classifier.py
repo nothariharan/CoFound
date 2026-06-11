@@ -6,9 +6,11 @@ import json
 import re
 from typing import Any
 
-from agents.store_protocol import DEFAULT_STORE, GraphStore, ResearchTask
-from graph.schema import NodeType
+from agents.store_protocol import GraphStore, ResearchTask, publish_workspace_update
+from mdb_mcp.agent_store import get_agent_store
+from graph.schema import NodeStatus, NodeType
 from llm.gemini import generate_pro
+from sse.feed import feed
 
 SYSTEM = """Classify a user's pivot against the startup graph.
 Return ONLY JSON: nodes_affected, nodes_unchanged, requery_needed, spawn_researcher.
@@ -18,7 +20,8 @@ Use node type strings from the schema.
 ALL_NODES = [n.value for n in NodeType]
 
 
-async def classify_pivot(workspace_id: str, message: str, store: GraphStore = DEFAULT_STORE, enqueue: bool = True) -> dict[str, Any]:
+async def classify_pivot(workspace_id: str, message: str, store: GraphStore | None = None, enqueue: bool = True) -> dict[str, Any]:
+    store = store or get_agent_store()
     workspace = await store.get_workspace(workspace_id)
     if workspace is None:
         raise ValueError(f"Workspace not found: {workspace_id}")
@@ -39,14 +42,35 @@ async def classify_pivot(workspace_id: str, message: str, store: GraphStore = DE
         "requery_needed": _as_bool(data.get("requery_needed"), bool(affected)),
         "spawn_researcher": _as_bool(data.get("spawn_researcher"), bool(affected)),
     }
+    await feed.publish(
+        workspace_id,
+        {
+            "text": f"[Diff Classifier] Pivot detected. Affected nodes: {', '.join(affected)}. Preserved: {', '.join(unchanged[:4])}.",
+            "type": "info",
+        },
+    )
+    for node in workspace.nodes:
+        if node.type.value in affected and node.type != NodeType.CORE_IDEA:
+            updated = node.model_copy(deep=True)
+            updated.confidence = 0
+            updated.status = NodeStatus.BLOCKING
+            updated.active_agents = []
+            updated.agent_notes = f"Awaiting user approval for targeted re-research after pivot: {message}"
+            await store.update_node(workspace_id, updated)
+    refreshed = await store.get_workspace(workspace_id)
+    if refreshed is not None:
+        await publish_workspace_update(workspace_id, refreshed)
     if enqueue and result["spawn_researcher"]:
         for i, node_type in enumerate(affected, start=1):
+            tools = ["reddit", "firecrawl"] if node_type in {"audience", "revenue", "market_intelligence"} else ["firecrawl"]
+            if node_type == "tech_stack":
+                tools = ["github", "firecrawl"]
             await store.enqueue_task(
                 ResearchTask(
                     workspace_id=workspace_id,
                     task=f"Re-research {node_type.replace('_', ' ')} after pivot: {message}",
                     type=node_type,
-                    tools=["reddit", "exa"] if node_type in {"audience", "revenue", "market_intelligence"} else ["exa", "firecrawl"],
+                    tools=tools,
                     priority=i,
                 )
             )

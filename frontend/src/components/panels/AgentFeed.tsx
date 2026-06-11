@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils'
 
 export function AgentFeed() {
   const workspace = useWorkspaceStore((s) => s.workspace)
-  const isDemo = useWorkspaceStore((s) => s.mode === 'demo')
   const { fetchWorkspace } = useWorkspace()
   const { messages, connected } = useSSEFeed(workspace?.idea_id)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -17,20 +16,21 @@ export function AgentFeed() {
   }, [messages])
 
   useEffect(() => {
-    if (isDemo || !workspace?.idea_id) return
+    if (!workspace?.idea_id) return
     const last = messages.at(-1)
     if (last?.type === 'done' || last?.type === 'critique') {
       void fetchWorkspace(workspace.idea_id)
     }
-  }, [messages, workspace?.idea_id, fetchWorkspace, isDemo])
+  }, [messages, workspace?.idea_id, fetchWorkspace])
 
   useEffect(() => {
-    if (isDemo || !workspace?.idea_id || !connected) return
+    if (!workspace?.idea_id || !connected) return
+    const hasActiveAgents = workspace.nodes.some((node) => node.active_agents.length > 0)
     const interval = window.setInterval(() => {
       void fetchWorkspace(workspace.idea_id)
-    }, 8000)
+    }, hasActiveAgents ? 3000 : 8000)
     return () => window.clearInterval(interval)
-  }, [workspace?.idea_id, connected, fetchWorkspace, isDemo])
+  }, [workspace?.idea_id, workspace?.nodes, connected, fetchWorkspace])
 
   return (
     <div className="flex h-full flex-col">

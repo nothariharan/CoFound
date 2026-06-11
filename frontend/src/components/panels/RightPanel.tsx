@@ -1,7 +1,11 @@
-import { X } from 'lucide-react'
+import { useState } from 'react'
+import { Play, X } from 'lucide-react'
+import { useAgentActions } from '@/hooks/useAgentActions'
+import { useWorkspace } from '@/hooks/useWorkspace'
 import { useWorkspaceStore } from '@/store/workspaceStore'
-import { AgentFeed } from '@/components/panels/AgentFeed'
+import { OrchestratorPanel } from '@/components/panels/OrchestratorPanel'
 import { NodeDetails } from '@/components/panels/NodeDetails'
+import { NodeHistory } from '@/components/panels/NodeHistory'
 import { NodeChat } from '@/components/panels/NodeChat'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,25 +13,66 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { statusBadgeVariant, statusLabels } from '@/utils/nodeColors'
 
 export function RightPanel() {
-  const { getSelectedNode, setSelectedNodeId } = useWorkspaceStore()
+  const { workspace, getSelectedNode, setSelectedNodeId } = useWorkspaceStore()
+  const { researchNode } = useAgentActions()
+  const { fetchWorkspace } = useWorkspace()
+  const [approving, setApproving] = useState(false)
+  const [approvalError, setApprovalError] = useState<string | null>(null)
   const selectedNode = getSelectedNode()
 
   if (!selectedNode) {
-    return (
-      <aside className="shell-panel flex h-full w-[360px] shrink-0 flex-col border-l border-border bg-card">
-        <AgentFeed />
-      </aside>
-    )
+    return <OrchestratorPanel />
+  }
+
+  const canApproveResearch =
+    Boolean(workspace?.idea_id) &&
+    selectedNode.type !== 'core_idea' &&
+    selectedNode.status !== 'locked' &&
+    selectedNode.active_agents.length === 0
+  const isResearching = selectedNode.active_agents.length > 0
+
+  const handleApproveResearch = async () => {
+    if (!workspace?.idea_id || !canApproveResearch) return
+    setApproving(true)
+    setApprovalError(null)
+    try {
+      await researchNode(workspace.idea_id, selectedNode.type)
+      await fetchWorkspace(workspace.idea_id)
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'Failed to approve research')
+    } finally {
+      setApproving(false)
+    }
   }
 
   return (
     <aside className="shell-panel flex h-full w-[360px] shrink-0 flex-col border-l border-border bg-card">
       <div className="flex items-start justify-between border-b border-border p-4">
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="text-base font-semibold text-foreground">{selectedNode.title}</h2>
           <Badge variant={statusBadgeVariant[selectedNode.status]} className="mt-1">
             {statusLabels[selectedNode.status]}
           </Badge>
+          {canApproveResearch && (
+            <div className="mt-3">
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-2"
+                onClick={() => void handleApproveResearch()}
+                disabled={approving}
+              >
+                <Play className="size-3.5" />
+                {approving ? 'Starting...' : `Approve ${selectedNode.title} research`}
+              </Button>
+            </div>
+          )}
+          {isResearching && (
+            <p className="mt-3 rounded-md border border-border bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+              Research running. Watch the History tab for attempts, critique scores, and evidence as it streams in.
+            </p>
+          )}
+          {approvalError && <p className="mt-2 text-xs text-destructive">{approvalError}</p>}
         </div>
         <Button
           variant="ghost"
@@ -60,7 +105,7 @@ export function RightPanel() {
           </div>
         </TabsContent>
         <TabsContent value="history" className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <AgentFeed />
+          <NodeHistory node={selectedNode} />
         </TabsContent>
       </Tabs>
     </aside>

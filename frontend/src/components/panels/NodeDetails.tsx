@@ -11,6 +11,9 @@ interface NodeDetailsProps {
 }
 
 export function NodeDetails({ node }: NodeDetailsProps) {
+  const latest = node.research_history?.at(-1)
+  const latestItems = latest?.result?.items ?? []
+
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-4 p-4">
@@ -85,7 +88,46 @@ export function NodeDetails({ node }: NodeDetailsProps) {
             <SourcePills pills={node.source_pills} />
           </div>
         )}
+
+        {node.source_pills.length === 0 && (
+          <div>
+            <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Sources</p>
+            <p className="text-sm text-muted-foreground">
+              {latest
+                ? 'No accepted source pills yet. Check the latest research attempt below for raw evidence and critique.'
+                : 'No research has been approved for this node yet.'}
+            </p>
+          </div>
+        )}
+
+        {latest && (
+          <div>
+            <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Latest Attempt</p>
+            <p className="text-sm text-foreground/90">
+              {latest.status ?? 'research'} {typeof latest.score === 'number' ? `(${latest.score}/100)` : ''}
+            </p>
+            {latest.reason && <p className="mt-1 text-sm text-muted-foreground">{latest.reason}</p>}
+            {latestItems.length > 0 && (
+              <div className="mt-3 flex flex-col gap-2">
+                {latestItems.slice(0, 3).map((item, index) => (
+                  <div key={`${item.url ?? item.title ?? index}`} className="rounded-md border border-border p-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{sourceLabel(item)}</p>
+                    <p className="mt-1 text-xs font-medium text-foreground">{item.title || 'Evidence'}</p>
+                    {item.snippet && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.snippet}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </ScrollArea>
   )
+}
+
+function sourceLabel(item: { source?: string; origin?: string }) {
+  if (item.source === 'web' || item.origin === 'web') return 'Web'
+  if (item.origin === 'reddit') return 'Reddit'
+  if (item.source === 'scrapling') return 'Web'
+  return item.source || 'Evidence'
 }

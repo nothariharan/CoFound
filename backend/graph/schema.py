@@ -48,6 +48,25 @@ def canonical_node_id(node_type: NodeType) -> str:
     return CANONICAL_NODE_IDS[node_type]
 
 
+NODE_AGENT_IDS: dict[NodeType, str] = {
+    NodeType.CORE_IDEA: "agent_core_idea",
+    NodeType.AUDIENCE: "agent_audience",
+    NodeType.MARKET_INTELLIGENCE: "agent_market",
+    NodeType.COMPETITORS: "agent_competitors",
+    NodeType.REVENUE: "agent_revenue",
+    NodeType.PRODUCT_VISION: "agent_product",
+    NodeType.TECH_STACK: "agent_tech",
+    NodeType.BUILD: "agent_build",
+    NodeType.LAUNCH: "agent_launch",
+    NodeType.OBSERVE: "agent_observe",
+    NodeType.GROWTH: "agent_growth",
+}
+
+
+def node_agent_id(node_type: NodeType) -> str:
+    return NODE_AGENT_IDS[node_type]
+
+
 class SourcePill(BaseModel):
     label: str
     count: int = 0
@@ -109,6 +128,10 @@ class WorkspaceDocument(BaseModel):
     nodes: list[BaseNode] = Field(default_factory=list)
     export_ready: bool = False
     export_url: str | None = None
+    github_connected: bool = False
+    github_repo: str | None = None
+    posthog_connected: bool = False
+    posthog_project_id: str | None = None
 
 
 def status_from_confidence(confidence: int, locked: bool = False) -> NodeStatus:

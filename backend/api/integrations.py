@@ -7,12 +7,9 @@ from pydantic import BaseModel
 
 from agents.build_observer import observe_build
 from agents.observe_agent import observe_funnel
-from agents.store_protocol import DEFAULT_STORE
+from agents.store_protocol import DEFAULT_STORE, publish_workspace_update
 
 router = APIRouter(tags=["integrations"])
-
-_INTEGRATION_STATE: dict[str, dict[str, object]] = {}
-
 
 class GitHubConnectRequest(BaseModel):
     workspace_id: str
@@ -26,21 +23,15 @@ class PostHogConnectRequest(BaseModel):
     api_key: str
 
 
-def _state(workspace_id: str) -> dict[str, object]:
-    return _INTEGRATION_STATE.setdefault(workspace_id, {})
-
-
 @router.get("/integrations")
 async def get_integrations(workspace_id: str = Query(...)):
     workspace = await DEFAULT_STORE.get_workspace(workspace_id)
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
-    state = _state(workspace_id)
     return {
-        "github": bool(state.get("github_connected")),
-        "posthog": bool(state.get("posthog_connected")),
+        "github": bool(workspace.github_connected),
+        "posthog": bool(workspace.posthog_connected),
         "reddit": True,
-        "gummysearch": bool(state.get("gummysearch_connected", False)),
     }
 
 
@@ -50,12 +41,16 @@ async def connect_github(payload: GitHubConnectRequest):
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
     try:
-        await observe_build(payload.workspace_id, payload.repo, store=DEFAULT_STORE, token=payload.access_token)
+        from mdb_mcp.agent_store import get_agent_store
+
+        await observe_build(payload.workspace_id, payload.repo, store=get_agent_store(), token=payload.access_token)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    state = _state(payload.workspace_id)
-    state["github_connected"] = True
-    state["github_repo"] = payload.repo
+    workspace.github_connected = True
+    workspace.github_repo = payload.repo
+    if hasattr(DEFAULT_STORE, "save_workspace"):
+        await DEFAULT_STORE.save_workspace(workspace)
+    await publish_workspace_update(payload.workspace_id, workspace)
     return {"connected": True, "build_node_unlocked": True}
 
 
@@ -65,10 +60,14 @@ async def connect_posthog(payload: PostHogConnectRequest):
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
     try:
-        await observe_funnel(payload.workspace_id, store=DEFAULT_STORE, project_id=payload.project_id, api_key=payload.api_key)
+        from mdb_mcp.agent_store import get_agent_store
+
+        await observe_funnel(payload.workspace_id, store=get_agent_store(), project_id=payload.project_id, api_key=payload.api_key)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    state = _state(payload.workspace_id)
-    state["posthog_connected"] = True
-    state["posthog_project_id"] = payload.project_id
+    workspace.posthog_connected = True
+    workspace.posthog_project_id = payload.project_id
+    if hasattr(DEFAULT_STORE, "save_workspace"):
+        await DEFAULT_STORE.save_workspace(workspace)
+    await publish_workspace_update(payload.workspace_id, workspace)
     return {"connected": True, "observe_node_unlocked": True}

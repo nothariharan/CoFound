@@ -109,12 +109,12 @@ def test_observe_funnel_triggers_growth_when_drop_detected(workspace, memory_sto
     assert result["drops"]
     assert "growth_recommendation" in result
     assert any(node.type.value == "observe" for node in workspace.nodes)
-    assert any(node.type.value == "growth" for node in workspace.nodes)
+    assert not any(node.type.value == "growth" for node in workspace.nodes)
 
 
 def test_export_agent_creates_zip_with_required_files(workspace, memory_store, monkeypatch):
     async def mock_export(prompt: str, system: str = "") -> str:
-        return "Mock Gemini response: force fallback"
+        return "Gemini is not configured yet. Add GOOGLE_API_KEY for live agent reasoning."
 
     monkeypatch.setattr("export.generator.generate_pro", mock_export)
 

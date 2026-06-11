@@ -94,10 +94,14 @@ class MemoryGraphStore:
                 workspace.last_active = _now_utc()
                 if before is None or before.confidence != node.confidence or before.status != node.status:
                     await self._append_journal(idea_id, node, confidence_before, before)
+                workspace.nodes = compute_unlock_states(workspace.nodes)
+                await publish_workspace_update(idea_id, workspace)
                 return node
         workspace.nodes.append(node)
         workspace.last_active = _now_utc()
         await self._append_journal(idea_id, node, confidence_before, before)
+        workspace.nodes = compute_unlock_states(workspace.nodes)
+        await publish_workspace_update(idea_id, workspace)
         return node
 
     async def _append_journal(self, idea_id: str, node: BaseNode, confidence_before: int, before: BaseNode | None) -> None:
@@ -150,6 +154,7 @@ class MemoryGraphStore:
                 return
 
     async def log_dead_end(self, workspace_id: str, task: str, reason: str) -> None:
+        node_type = _coerce_node_type(_infer_task_type(task))
         self.dead_ends.append(
             {
                 "workspace_id": workspace_id,
@@ -158,9 +163,22 @@ class MemoryGraphStore:
                 "timestamp": _now_utc().isoformat(),
             }
         )
+        self.journal_entries.append(
+            {
+                "entry_id": str(uuid4()),
+                "idea_id": workspace_id,
+                "timestamp": _now_utc().isoformat(),
+                "node_type": node_type.value,
+                "event": "research_dead_end",
+                "reason": reason,
+                "evidence": [],
+                "confidence_before": 0,
+                "confidence_after": 0,
+            }
+        )
 
     async def search_knowledge_base(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
-        # Mock KB until Track A vector search lands. Keep deterministic and useful.
+        # Minimal local fallback used only when Atlas knowledge-base search is unavailable.
         return [
             {"title": "PMF heuristic", "snippet": "Prefer tasks that validate painful, frequent, budgeted problems."},
             {"title": "Competitor heuristic", "snippet": "List direct, indirect, and do-nothing alternatives."},
@@ -185,6 +203,8 @@ class MemoryGraphStore:
                 "task_id": task.task_id,
                 "task": task.task,
                 "score": score,
+                "status": "partial" if result.get("partial") else "accepted",
+                "reason": result.get("critique_reason", ""),
                 "result": result,
                 "timestamp": _now_utc().isoformat(),
             }
@@ -222,14 +242,32 @@ def _coerce_node_type(value: str) -> NodeType:
         return NodeType.MARKET_INTELLIGENCE
 
 
+def _infer_task_type(task: str) -> str:
+    task_lower = task.lower()
+    for node_type in NodeType:
+        if node_type.value in task_lower or node_type.value.replace("_", " ") in task_lower:
+            return node_type.value
+    return NodeType.MARKET_INTELLIGENCE.value
+
+
 def _source_pills(result: dict[str, Any]) -> list[SourcePill]:
     counts: dict[str, int] = {}
     for item in result.get("items", []) or []:
         if not isinstance(item, dict):
             continue
-        source = str(item.get("source") or item.get("tool") or "Research").title()
+        source = _source_label(item)
         counts[source] = counts.get(source, 0) + 1
     return [SourcePill(label=label, count=count) for label, count in counts.items()]
+
+
+def _source_label(item: dict[str, Any]) -> str:
+    if item.get("source") == "web" or item.get("origin") == "web":
+        return "Web"
+    if item.get("origin") == "reddit":
+        return "Reddit"
+    if item.get("source") == "scrapling" or item.get("tool") == "scrapling":
+        return "Web"
+    return str(item.get("source") or item.get("tool") or "Research").title()
 
 
 def _merge_source_pills(existing: list[SourcePill], new: list[SourcePill]) -> list[SourcePill]:
@@ -260,3 +298,20 @@ class StoreProxy:
 
 
 DEFAULT_STORE: StoreProxy = StoreProxy()
+
+
+async def publish_workspace_update(workspace_id: str, workspace: WorkspaceDocument) -> None:
+    from sse.feed import feed
+
+    workspace.nodes = compute_unlock_states(workspace.nodes)
+    await feed.publish(
+        workspace_id,
+        {
+            "type": "workspace",
+            "workspace": {
+                "idea_id": workspace.idea_id,
+                "workspace_name": workspace.workspace_name,
+                "nodes": [node.model_dump(mode="json") for node in workspace.nodes],
+            },
+        },
+    )

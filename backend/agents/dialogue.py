@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 
-from agents.store_protocol import DEFAULT_STORE, GraphStore
+from agents.store_protocol import GraphStore
+from mdb_mcp.agent_store import get_agent_store
 from llm.gemini import generate_pro
 
 SYSTEM = """Read the startup graph and synthesize a concise brief.
@@ -12,7 +13,8 @@ Return JSON with keys: brief, question. The question must be exactly one targete
 """
 
 
-async def synthesize_dialogue(workspace_id: str, store: GraphStore = DEFAULT_STORE) -> dict[str, str]:
+async def synthesize_dialogue(workspace_id: str, store: GraphStore | None = None) -> dict[str, str]:
+    store = store or get_agent_store()
     workspace = await store.get_workspace(workspace_id)
     if workspace is None:
         raise ValueError(f"Workspace not found: {workspace_id}")
