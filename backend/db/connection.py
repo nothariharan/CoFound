@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 
+import certifi
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 _client: AsyncIOMotorClient | None = None
@@ -21,6 +22,7 @@ async def connect_db() -> AsyncIOMotorDatabase:
     # Long-running FastAPI service: reuse one client, pre-warm a small pool for agent polling.
     _client = AsyncIOMotorClient(
         uri,
+        tlsCAFile=certifi.where(),
         minPoolSize=5,
         maxPoolSize=50,
         maxIdleTimeMS=300_000,
