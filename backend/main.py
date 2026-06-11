@@ -16,6 +16,7 @@ from api.export import router as export_router
 from api.feed import router as feed_router
 from api.integrations import router as integrations_router
 from api.nodes import router as nodes_router
+from api.voice import router as voice_router
 from api.workspace import router as workspace_router
 from mdb_mcp.agent_store import agent_store_mode, set_agent_store, use_mongodb_mcp_enabled
 
@@ -105,6 +106,7 @@ app.include_router(feed_router, prefix="/api")
 app.include_router(agents_router, prefix="/api")
 app.include_router(export_router, prefix="/api")
 app.include_router(integrations_router, prefix="/api")
+app.include_router(voice_router, prefix="/api")
 
 
 @app.get("/health")

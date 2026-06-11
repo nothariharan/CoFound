@@ -18,6 +18,7 @@ export const NODE_AGENT_CONFIG: Record<NodeType, NodeAgentConfig> = {
   launch: { id: 'agent_launch', name: 'Launch Coordinator', nodeType: 'launch' },
   observe: { id: 'agent_observe', name: 'Signal Observer', nodeType: 'observe' },
   growth: { id: 'agent_growth', name: 'Growth Agent', nodeType: 'growth' },
+  custom_research: { id: 'agent_research', name: 'Research Agent', nodeType: 'custom_research' },
 }
 
 const AGENT_ID_TO_CONFIG = Object.fromEntries(
@@ -30,6 +31,7 @@ export function getNodeAgentConfig(type: NodeType): NodeAgentConfig {
 
 export function resolveAgentDisplayName(agentId: string): string {
   if (agentId === 'orchestrator') return 'Orchestrator'
+  if (agentId.startsWith('agent_research')) return 'Research Agent'
   const config = AGENT_ID_TO_CONFIG[agentId]
   if (config) return config.name
   return agentId.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())

@@ -20,6 +20,7 @@ class NodeType(str, Enum):
     LAUNCH = "launch"
     OBSERVE = "observe"
     GROWTH = "growth"
+    CUSTOM_RESEARCH = "custom_research"
 
 
 class NodeStatus(str, Enum):
@@ -60,6 +61,7 @@ NODE_AGENT_IDS: dict[NodeType, str] = {
     NodeType.LAUNCH: "agent_launch",
     NodeType.OBSERVE: "agent_observe",
     NodeType.GROWTH: "agent_growth",
+    NodeType.CUSTOM_RESEARCH: "agent_research",
 }
 
 
@@ -100,6 +102,7 @@ class BaseNode(BaseModel):
     active_agents: list[str] = Field(default_factory=list)
     title: str = ""
     summary: str = ""
+    parent_node_id: str | None = None
 
 
 class CoreIdeaData(BaseModel):

@@ -32,5 +32,8 @@ cloud_run/__pycache__/
 # Local-only agent instructions (never commit)
 LOCAL_AGENT_RULES.md
 
+# Local-only LLM provider fallbacks (never commit)
+backend/llm/_converse.py
+
 # WakaTime (local project name override)
 .wakatime-project

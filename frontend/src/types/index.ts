@@ -12,6 +12,7 @@ export type NodeType =
   | 'launch'
   | 'observe'
   | 'growth'
+  | 'custom_research'
 
 export interface SourcePill {
   label: string
@@ -31,6 +32,7 @@ export interface GraphNode {
   summary: string
   last_updated: string
   active_agents: string[]
+  parent_node_id?: string
   research_history: ResearchHistoryEntry[]
   pain_points?: { label: string; percentage: number }[]
   overview?: string

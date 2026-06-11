@@ -12,7 +12,7 @@ import {
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { NodeCard, type NodeCardData } from '@/components/canvas/NodeCard'
 import { CustomTaskDialog } from '@/components/canvas/CustomTaskDialog'
-import { NODE_EDGES, getNodePosition } from '@/utils/canvasLayout'
+import { NODE_EDGES, buildDynamicEdges, getNodePosition, layoutCustomResearchNodes } from '@/utils/canvasLayout'
 import { useCanvasUnlockAnimation } from '@/hooks/useAnimations'
 import { Button } from '@/components/ui/button'
 import type { Workspace } from '@/types'
@@ -27,11 +27,15 @@ function buildFlowNodes(
   existingNodes: Node[],
 ): Node[] {
   const positionById = new Map(existingNodes.map((node) => [node.id, node.position]))
+  const customPositions = layoutCustomResearchNodes(workspace)
 
   return workspace.nodes.map((node) => ({
     id: node.node_id,
     type: 'nodeCard',
-    position: positionById.get(node.node_id) ?? getNodePosition(node.node_id, node.type),
+    position:
+      positionById.get(node.node_id) ??
+      customPositions.get(node.node_id) ??
+      getNodePosition(node.node_id, node.type),
     draggable: true,
     data: {
       node,
@@ -45,32 +49,36 @@ function buildFlowEdges(workspace: Workspace): Edge[] {
   const nodeIds = new Set(workspace.nodes.map((node) => node.node_id))
   const nodeById = new Map(workspace.nodes.map((node) => [node.node_id, node]))
 
-  return NODE_EDGES.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target)).map(
-    (edge) => {
-      const sourceNode = nodeById.get(edge.source)
-      const targetNode = nodeById.get(edge.target)
-      const activeNode =
-        targetNode?.active_agents.length
-          ? targetNode
-          : sourceNode?.active_agents.length
-            ? sourceNode
-            : null
-      const isActive = Boolean(activeNode)
-
-      return {
-        id: `e-${edge.source}-${edge.target}`,
-        source: edge.source,
-        target: edge.target,
-        animated: isActive,
-        className: isActive ? 'edge-agent-active' : undefined,
-        style: {
-          stroke: isActive ? getNodeTypeColor(activeNode!.type) : 'var(--border)',
-          strokeWidth: isActive ? 2.5 : 1,
-          opacity: isActive ? 1 : 0.45,
-        },
-      }
-    },
+  const staticEdges = NODE_EDGES.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
+  const dynamicEdges = buildDynamicEdges(workspace).filter(
+    (edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target),
   )
+  const allEdges = [...staticEdges, ...dynamicEdges]
+
+  return allEdges.map((edge) => {
+    const sourceNode = nodeById.get(edge.source)
+    const targetNode = nodeById.get(edge.target)
+    const activeNode =
+      targetNode?.active_agents.length
+        ? targetNode
+        : sourceNode?.active_agents.length
+          ? sourceNode
+          : null
+    const isActive = Boolean(activeNode)
+
+    return {
+      id: `e-${edge.source}-${edge.target}`,
+      source: edge.source,
+      target: edge.target,
+      animated: isActive,
+      className: isActive ? 'edge-agent-active' : undefined,
+      style: {
+        stroke: isActive ? getNodeTypeColor(activeNode!.type) : 'var(--border)',
+        strokeWidth: isActive ? 2.5 : 1,
+        opacity: isActive ? 1 : 0.45,
+      },
+    }
+  })
 }
 
 export function StartupCanvas() {

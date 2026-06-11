@@ -12,6 +12,7 @@ export const nodeTypeColors: Record<NodeType, string> = {
   launch: 'var(--node-launch)',
   observe: 'var(--node-observe)',
   growth: 'var(--node-growth)',
+  custom_research: '#8b5cf6',
 }
 
 export const statusColors: Record<NodeStatus, string> = {

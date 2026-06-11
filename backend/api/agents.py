@@ -14,6 +14,7 @@ from agents.diff_classifier import classify_pivot
 from agents.growth_agent import handoff_target_node, recommend_priority
 from agents.observe_agent import observe_funnel
 from agents.orchestrator import spawn_research_session
+from agents.orchestrator_tools import _spawn_research_agents
 from agents.researcher import run_researchers
 from agents.store_protocol import ResearchTask, publish_workspace_update
 from mdb_mcp.agent_store import get_agent_store
@@ -72,6 +73,24 @@ class CustomTaskRequest(BaseModel):
     title: str
     description: str
     node_type: NodeType | None = None
+
+
+class ResearchTopic(BaseModel):
+    title: str
+    description: str
+    parent_node_type: str | None = None
+
+
+class SpawnResearchAgentsRequest(BaseModel):
+    workspace_id: str
+    topics: list[ResearchTopic] = []
+    user_message: str | None = None
+
+
+class SpawnResearchAgentsResponse(BaseModel):
+    nodes_created: list[dict[str, str]]
+    tasks_queued: int
+    agents_active: int
 
 
 class HandoffRequest(BaseModel):
@@ -248,6 +267,26 @@ async def custom_task(payload: CustomTaskRequest):
     if workspace is not None:
         await publish_workspace_update(payload.workspace_id, workspace)
     return SpawnResponse(session_id=task.task_id, tasks_queued=1, agents_active=1)
+
+
+@router.post("/agents/spawn-research-agents", response_model=SpawnResearchAgentsResponse)
+async def spawn_research_agents(payload: SpawnResearchAgentsRequest):
+    try:
+        result = await _spawn_research_agents(
+            payload.workspace_id,
+            [topic.model_dump() for topic in payload.topics],
+            str(payload.user_message or ""),
+            store=get_agent_store(),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if result.get("error"):
+        raise HTTPException(status_code=400, detail=str(result["error"]))
+    return SpawnResearchAgentsResponse(
+        nodes_created=result.get("nodes_created") or [],
+        tasks_queued=int(result.get("tasks_queued") or 0),
+        agents_active=int(result.get("agents_active") or 0),
+    )
 
 
 @router.get("/priority")

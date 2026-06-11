@@ -8,6 +8,7 @@ import {
   Lightbulb,
   Lock,
   Rocket,
+  Search,
   Target,
   TrendingUp,
   Users,
@@ -45,6 +46,7 @@ const nodeIcons: Record<
   launch: Rocket,
   observe: Eye,
   growth: TrendingUp,
+  custom_research: Search,
 }
 
 function NodeCardComponent({ data }: NodeProps & { data: NodeCardData }) {

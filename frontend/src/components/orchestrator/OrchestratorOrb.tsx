@@ -4,7 +4,6 @@ import { useVoiceOrchestrator } from '@/hooks/useVoiceOrchestrator'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
@@ -88,11 +87,11 @@ export function OrchestratorOrb() {
               </Button>
             </div>
 
-            <ScrollArea className="max-h-[220px]">
+            <div className="max-h-[220px] overflow-y-auto overscroll-contain">
               <div className="flex flex-col gap-3 p-4">
-                {messages.slice(-4).map((msg, index) => (
+                {messages.map((msg, index) => (
                   <div
-                    key={`${msg.text}-${index}`}
+                    key={`msg-${index}-${msg.role}`}
                     className={cn('flex flex-col gap-1', msg.role === 'user' && 'items-end')}
                   >
                     <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -108,8 +107,8 @@ export function OrchestratorOrb() {
                     </div>
                     {msg.actionsTaken?.length ? (
                       <div className="flex flex-wrap gap-1">
-                        {msg.actionsTaken.map((action) => (
-                          <Badge key={action.summary} variant="outline" className="text-[10px]">
+                        {msg.actionsTaken.map((action, actionIndex) => (
+                          <Badge key={`${index}-${actionIndex}-${action.tool}`} variant="outline" className="text-[10px]">
                             {action.summary}
                           </Badge>
                         ))}
@@ -119,7 +118,7 @@ export function OrchestratorOrb() {
                 ))}
                 <div ref={bottomRef} />
               </div>
-            </ScrollArea>
+            </div>
 
             <form onSubmit={(e) => void handleSend(e)} className="border-t border-border p-3">
               <div className="flex items-end gap-2">

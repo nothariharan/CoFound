@@ -51,6 +51,10 @@ def compute_unlock_states(nodes: list[BaseNode]) -> list[BaseNode]:
             node.status = status_from_confidence(node.confidence)
             updated.append(node)
             continue
+        if node.type == NodeType.CUSTOM_RESEARCH:
+            node.status = status_from_confidence(node.confidence)
+            updated.append(node)
+            continue
         if prerequisites_met(nodes, node.type):
             node.status = status_from_confidence(node.confidence)
         else:

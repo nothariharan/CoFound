@@ -234,7 +234,13 @@ async def _get_task_node(workspace_id: str, store: GraphStore, task: ResearchTas
     workspace = await store.get_workspace(workspace_id)
     if workspace is None:
         return None
-    existing = next((node for node in workspace.nodes if node.node_id == task.node_id or node.type.value == task.type), None)
+    if task.node_id:
+        existing = next((node for node in workspace.nodes if node.node_id == task.node_id), None)
+        if existing is not None:
+            return existing
+    if task.type == NodeType.CUSTOM_RESEARCH.value:
+        return None
+    existing = next((node for node in workspace.nodes if node.type.value == task.type), None)
     if existing is not None:
         return existing
     data: dict[str, Any] = {

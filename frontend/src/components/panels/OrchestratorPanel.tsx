@@ -160,9 +160,15 @@ function OrchestratorChat() {
   const [input, setInput] = useState('')
   const { messages, voiceState, toggleListening, sendMessage } = useVoiceOrchestrator()
   const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const container = scrollRef.current
+    if (!container) return
+    const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120
+    if (nearBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages])
 
   const handleSend = async (event: React.FormEvent) => {
@@ -176,11 +182,11 @@ function OrchestratorChat() {
   const micDisabled = voiceState === 'thinking' || voiceState === 'transcribing' || voiceState === 'speaking'
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <ScrollArea className="flex-1">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="flex flex-col gap-4 p-4">
           {messages.map((msg, index) => (
-            <div key={`${msg.text}-${index}`} className={cn('flex flex-col gap-1', msg.role === 'user' && 'items-end')}>
+            <div key={`msg-${index}-${msg.role}`} className={cn('flex flex-col gap-1', msg.role === 'user' && 'items-end')}>
               <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                 {msg.role === 'user' ? 'You' : (msg.agentName ?? 'Orchestrator')}
               </span>
@@ -194,8 +200,8 @@ function OrchestratorChat() {
               </div>
               {msg.actionsTaken?.length ? (
                 <div className={cn('flex flex-wrap gap-1', msg.role === 'user' && 'justify-end')}>
-                  {msg.actionsTaken.map((action) => (
-                    <Badge key={action.summary} variant="outline" className="text-[10px]">
+                  {msg.actionsTaken.map((action, actionIndex) => (
+                    <Badge key={`${index}-${actionIndex}-${action.tool}`} variant="outline" className="text-[10px]">
                       {action.summary}
                     </Badge>
                   ))}
@@ -205,7 +211,7 @@ function OrchestratorChat() {
           ))}
           <div ref={bottomRef} />
         </div>
-      </ScrollArea>
+      </div>
 
       <form onSubmit={(e) => void handleSend(e)} className="border-t border-border p-3">
         <div className="relative">
@@ -271,7 +277,7 @@ export function OrchestratorPanel() {
         </p>
       </div>
 
-      <Tabs defaultValue="chat" className="flex min-h-0 flex-1 flex-col">
+      <Tabs defaultValue="chat" className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <TabsList className="w-full justify-start px-4">
           <TabsTrigger value="chat">Chat</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>

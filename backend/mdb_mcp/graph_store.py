@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from agents.store_protocol import ResearchTask, _coerce_node_type, _infer_task_type, _merge_source_pills, _source_pills, publish_workspace_update
+from agents.store_protocol import ResearchTask, _coerce_node_type, _find_existing_node, _infer_task_type, _merge_source_pills, _node_update_matches, _source_pills, publish_workspace_update
 from db import collections as col
 from graph.schema import BaseNode, UnlockConditions, WorkspaceDocument, canonical_node_id, status_from_confidence
 from graph.snapshot import create_snapshot
@@ -38,13 +38,13 @@ class McpGraphStore:
         if workspace is None:
             raise KeyError(f"Workspace not found: {idea_id}")
 
-        before = next((n for n in workspace.nodes if n.node_id == node.node_id or n.type == node.type), None)
+        before = next((n for n in workspace.nodes if _node_update_matches(n, node)), None)
         confidence_before = before.confidence if before else 0
         node.last_updated = _now_utc()
 
         replaced = False
         for i, existing in enumerate(workspace.nodes):
-            if existing.node_id == node.node_id or existing.type == node.type:
+            if _node_update_matches(existing, node):
                 workspace.nodes[i] = node
                 replaced = True
                 break
@@ -164,7 +164,7 @@ class McpGraphStore:
             raise KeyError(f"Workspace not found: {workspace_id}")
 
         node_type = _coerce_node_type(task.type)
-        existing = next((n for n in workspace.nodes if n.type == node_type), None)
+        existing = _find_existing_node(workspace, task)
         confidence = max(score, existing.confidence if existing else 0)
         notes = result.get("summary") or result.get("answer") or result.get("notes") or "Research committed."
         history = list(existing.research_history if existing else [])
@@ -180,8 +180,8 @@ class McpGraphStore:
             }
         )
         node = BaseNode(
-            node_id=existing.node_id if existing else canonical_node_id(node_type),
-            type=node_type,
+            node_id=existing.node_id if existing else (task.node_id or canonical_node_id(node_type)),
+            type=existing.type if existing else node_type,
             confidence=confidence,
             status=status_from_confidence(confidence),
             sources=sorted(set((existing.sources if existing else []) + list(result.get("sources", [])))),
@@ -194,6 +194,7 @@ class McpGraphStore:
             summary=str(notes)[:240],
             unlock_conditions=existing.unlock_conditions if existing else UnlockConditions(),
             historical_snapshots=existing.historical_snapshots if existing else [],
+            parent_node_id=existing.parent_node_id if existing else None,
         )
         return await self.update_node(workspace_id, node)
 

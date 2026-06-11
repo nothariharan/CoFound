@@ -81,7 +81,7 @@ class MemoryGraphStore:
         workspace = self.workspaces.get(idea_id)
         if workspace is None:
             raise KeyError(f"Workspace not found: {idea_id}")
-        before = next((n for n in workspace.nodes if n.node_id == node.node_id or n.type == node.type), None)
+        before = next((n for n in workspace.nodes if _node_update_matches(n, node)), None)
         confidence_before = before.confidence if before else 0
         node.last_updated = _now_utc()
         if before is not None and before.confidence != node.confidence:
@@ -89,7 +89,7 @@ class MemoryGraphStore:
             snapshots.append(create_snapshot(node.confidence, f"{confidence_before}% -> {node.confidence}%"))
             node.historical_snapshots = snapshots
         for i, existing in enumerate(workspace.nodes):
-            if existing.node_id == node.node_id or existing.type == node.type:
+            if _node_update_matches(existing, node):
                 workspace.nodes[i] = node
                 workspace.last_active = _now_utc()
                 if before is None or before.confidence != node.confidence or before.status != node.status:
@@ -191,7 +191,7 @@ class MemoryGraphStore:
             raise KeyError(f"Workspace not found: {workspace_id}")
 
         node_type = _coerce_node_type(task.type)
-        existing = next((n for n in workspace.nodes if n.type == node_type), None)
+        existing = _find_existing_node(workspace, task)
         confidence = max(score, existing.confidence if existing else 0)
         status = status_from_confidence(confidence)
         sources = sorted(set((existing.sources if existing else []) + list(result.get("sources", []))))
@@ -210,8 +210,8 @@ class MemoryGraphStore:
             }
         )
         node = BaseNode(
-            node_id=existing.node_id if existing else canonical_node_id(node_type),
-            type=node_type,
+            node_id=existing.node_id if existing else (task.node_id or canonical_node_id(node_type)),
+            type=existing.type if existing else node_type,
             confidence=confidence,
             status=status,
             sources=sources,
@@ -224,12 +224,30 @@ class MemoryGraphStore:
             summary=str(notes)[:240],
             unlock_conditions=existing.unlock_conditions if existing else UnlockConditions(),
             historical_snapshots=existing.historical_snapshots if existing else [],
+            parent_node_id=existing.parent_node_id if existing else None,
         )
         return await self.update_node(workspace_id, node)
 
 
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _node_update_matches(existing: BaseNode, node: BaseNode) -> bool:
+    if node.type == NodeType.CUSTOM_RESEARCH:
+        return existing.node_id == node.node_id
+    return existing.node_id == node.node_id or existing.type == node.type
+
+
+def _find_existing_node(workspace: WorkspaceDocument, task: ResearchTask) -> BaseNode | None:
+    if task.node_id:
+        match = next((n for n in workspace.nodes if n.node_id == task.node_id), None)
+        if match is not None:
+            return match
+    node_type = _coerce_node_type(task.type)
+    if node_type == NodeType.CUSTOM_RESEARCH:
+        return None
+    return next((n for n in workspace.nodes if n.type == node_type), None)
 
 
 def _coerce_node_type(value: str) -> NodeType:
@@ -239,6 +257,8 @@ def _coerce_node_type(value: str) -> NodeType:
     try:
         return NodeType(value)
     except ValueError:
+        if value == "custom_research":
+            return NodeType.CUSTOM_RESEARCH
         return NodeType.MARKET_INTELLIGENCE
 
 

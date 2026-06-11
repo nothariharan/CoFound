@@ -38,8 +38,9 @@ export function useWorkspace() {
         setWorkspace(data)
         setPhase('dashboard')
 
-        const priority = await fetchPriority(data.idea_id)
-        if (priority) setTodayPriority(priority)
+        void fetchPriority(data.idea_id).then((priority) => {
+          if (priority) setTodayPriority(priority)
+        })
 
         return data
       } catch (e) {
@@ -64,8 +65,9 @@ export function useWorkspace() {
         setWorkspace(data)
         setPhase('dashboard')
 
-        const priority = await fetchPriority(ideaId)
-        if (priority) setTodayPriority(priority)
+        void fetchPriority(ideaId).then((priority) => {
+          if (priority) setTodayPriority(priority)
+        })
 
         return data
       } catch (e) {

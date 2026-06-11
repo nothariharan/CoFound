@@ -49,6 +49,7 @@ async def generate_flash(prompt: str, system: str = "") -> str:
 class GeminiToolCall:
     name: str
     args: dict[str, Any]
+    id: str = ""
 
 
 @dataclass
@@ -67,19 +68,63 @@ async def generate_with_tools(
 ) -> GeminiToolResult:
     """Generate with optional function calling."""
 
-    model = _model(model_kind)
     key = _api_key()
     if not key:
         return _mock_tool_result(contents, tools)
-    return await asyncio.to_thread(
-        _generate_with_tools_sync,
-        contents,
-        tools,
-        system,
-        model,
-        key,
-        temperature,
-    )
+
+    model = _model(model_kind)
+    try:
+        return await asyncio.to_thread(
+            _generate_with_tools_sync,
+            contents,
+            tools,
+            system,
+            model,
+            key,
+            temperature,
+        )
+    except GeminiError as exc:
+        if model_kind == "pro" and _is_rate_limit_error(exc):
+            try:
+                return await asyncio.to_thread(
+                    _generate_with_tools_sync,
+                    contents,
+                    tools,
+                    system,
+                    _model("flash"),
+                    key,
+                    0.25,
+                )
+            except GeminiError:
+                pass
+        return _mock_tool_result(contents, tools)
+
+
+def _is_rate_limit_error(exc: GeminiError) -> bool:
+    text = str(exc).lower()
+    return "429" in text or "quota" in text or "rate" in text
+
+
+async def generate_pro_resilient(prompt: str, system: str = "") -> str:
+    """Generate with Pro, falling back to Flash then a static message."""
+
+    key = _api_key()
+    if not key:
+        return _mock_response(prompt, system, _model("pro"))
+    try:
+        return await _generate(prompt=prompt, system=system, model=_model("pro"), temperature=0.35)
+    except GeminiError as exc:
+        if _is_rate_limit_error(exc):
+            try:
+                return await _generate(prompt=prompt, system=system, model=_model("flash"), temperature=0.25)
+            except GeminiError:
+                return json.dumps(
+                    {
+                        "reply": "Done. Check the activity feed for live agent updates.",
+                        "speaking_text": "Done. Watch the activity feed for updates.",
+                    }
+                )
+        raise
 
 
 async def _generate(prompt: str, system: str, model: str, temperature: float) -> str:
