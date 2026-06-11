@@ -1,4 +1,4 @@
-"""Standalone ADK Planner service for Cloud Run / Render deployment."""
+"""Standalone ADK Planner service for Cloud Run deployment."""
 
 from __future__ import annotations
 

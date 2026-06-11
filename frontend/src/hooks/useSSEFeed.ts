@@ -1,3 +1,4 @@
+import { apiUrl } from '@/lib/api'
 import { useEffect, useRef, useState } from 'react'
 import type { FeedMessage, Workspace } from '@/types'
 import { useWorkspaceStore } from '@/store/workspaceStore'
@@ -20,8 +21,8 @@ export function useSSEFeed(workspaceId?: string) {
     setMessages([])
     setConnected(false)
 
-    const url = workspaceId ? `/api/feed?workspace_id=${workspaceId}` : '/api/feed'
-    const source = new EventSource(url)
+    const path = workspaceId ? `/api/feed?workspace_id=${workspaceId}` : '/api/feed'
+    const source = new EventSource(apiUrl(path))
     sourceRef.current = source
 
     source.onopen = () => setConnected(true)

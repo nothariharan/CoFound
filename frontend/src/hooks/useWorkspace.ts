@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react'
 import type { TodayPriority, Workspace } from '@/types'
+import { apiUrl } from '@/lib/api'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 
 async function fetchPriority(workspaceId: string): Promise<TodayPriority | null> {
-  const res = await fetch(`/api/priority?workspace_id=${encodeURIComponent(workspaceId)}`)
+  const res = await fetch(apiUrl(`/api/priority?workspace_id=${encodeURIComponent(workspaceId)}`))
   if (!res.ok) return null
   const data = await res.json()
   return {
@@ -28,7 +29,7 @@ export function useWorkspace() {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch('/api/workspace', {
+        const res = await fetch(apiUrl('/api/workspace'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idea }),
@@ -59,7 +60,7 @@ export function useWorkspace() {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(`/api/workspace/${ideaId}`)
+        const res = await fetch(apiUrl(`/api/workspace/${ideaId}`))
         if (!res.ok) throw new Error('Workspace not found')
         const data: Workspace = await res.json()
         setWorkspace(data)

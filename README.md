@@ -6,7 +6,7 @@
 
 CoFounder represents your startup as a **living knowledge graph**. A central orchestrator coordinates specialist sub-agents, streams live progress, and surfaces the highest-ROI next action — all backed by MongoDB Atlas and Google Gemini.
 
-**Live Demo:** _Add your deployed URL here_
+**Live Demo:** [cofounder-alpha.vercel.app](https://cofounder-alpha.vercel.app)
 
 **Repository:** [github.com/nothariharan/CoFound](https://github.com/nothariharan/CoFound)
 
@@ -194,7 +194,7 @@ cofounder/
 ├── docs/                # Architecture, schema, banner
 ├── team/                # Parallel build guides & API contracts
 ├── scripts/             # Atlas seeding and index setup
-└── cloud_run/           # Optional ADK Planner service (Cloud Run / Render)
+└── cloud_run/           # Optional ADK Planner service (Cloud Run)
 ```
 
 ---

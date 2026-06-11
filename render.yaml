@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: cofounder-api
+    runtime: python
+    rootDir: backend
+    buildCommand: chmod +x build.sh start.sh && ./build.sh
+    startCommand: ./start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: USE_MONGODB_MCP
+        value: "true"

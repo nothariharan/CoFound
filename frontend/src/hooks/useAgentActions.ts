@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
+import { apiUrl } from '@/lib/api'
 import type { ChatMessage, JournalEntry, OrchestratorChatResult, TodayPriority } from '@/types'
-
 export interface DialogueResult {
   brief: string
   question: string
@@ -46,7 +46,7 @@ export function useAgentActions() {
       message: string,
       history?: ChatMessage[],
     ): Promise<OrchestratorChatResult> => {
-      const res = await fetch('/api/orchestrator/chat', {
+      const res = await fetch(apiUrl('/api/orchestrator/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -66,7 +66,7 @@ export function useAgentActions() {
 
   const sendDialogue = useCallback(
     async (workspaceId: string, message?: string): Promise<DialogueResult> => {
-      const res = await fetch('/api/agents/dialogue', {
+      const res = await fetch(apiUrl('/api/agents/dialogue'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspace_id: workspaceId, message }),
@@ -79,7 +79,7 @@ export function useAgentActions() {
 
   const sendPivot = useCallback(
     async (workspaceId: string, message: string): Promise<PivotResult> => {
-      const res = await fetch('/api/agents/pivot', {
+      const res = await fetch(apiUrl('/api/agents/pivot'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspace_id: workspaceId, message }),
@@ -92,7 +92,7 @@ export function useAgentActions() {
 
   const fetchJournal = useCallback(
     async (workspaceId: string): Promise<JournalEntry[]> => {
-      const res = await fetch(`/api/workspace/${workspaceId}/journal`)
+      const res = await fetch(apiUrl(`/api/workspace/${workspaceId}/journal`))
       if (!res.ok) throw new Error('Failed to fetch journal')
       const data = await res.json()
       return (data.entries ?? []) as JournalEntry[]
@@ -102,7 +102,7 @@ export function useAgentActions() {
 
   const requestExport = useCallback(
     async (workspaceId: string): Promise<ExportResult> => {
-      const res = await fetch('/api/export', {
+      const res = await fetch(apiUrl('/api/export'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspace_id: workspaceId }),
@@ -115,7 +115,7 @@ export function useAgentActions() {
 
   const fetchPriority = useCallback(
     async (workspaceId: string): Promise<TodayPriority> => {
-      const res = await fetch(`/api/priority?workspace_id=${encodeURIComponent(workspaceId)}`)
+      const res = await fetch(apiUrl(`/api/priority?workspace_id=${encodeURIComponent(workspaceId)}`))
       if (!res.ok) throw new Error('Failed to fetch priority')
       const data = await res.json()
       return {
@@ -132,7 +132,7 @@ export function useAgentActions() {
 
   const handoffToOrchestrator = useCallback(
     async (workspaceId: string): Promise<ResearchNodeResult> => {
-      const res = await fetch('/api/agents/handoff-priority', {
+      const res = await fetch(apiUrl('/api/agents/handoff-priority'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspace_id: workspaceId }),
@@ -148,7 +148,7 @@ export function useAgentActions() {
 
   const fetchIntegrations = useCallback(
     async (workspaceId: string): Promise<IntegrationStatus> => {
-      const res = await fetch(`/api/integrations?workspace_id=${encodeURIComponent(workspaceId)}`)
+      const res = await fetch(apiUrl(`/api/integrations?workspace_id=${encodeURIComponent(workspaceId)}`))
       if (!res.ok) throw new Error('Failed to fetch integrations')
       return res.json()
     },
@@ -157,7 +157,7 @@ export function useAgentActions() {
 
   const researchNode = useCallback(
     async (workspaceId: string, nodeType: string, userContext?: string): Promise<ResearchNodeResult> => {
-      const res = await fetch('/api/agents/research-node', {
+      const res = await fetch(apiUrl('/api/agents/research-node'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -182,7 +182,7 @@ export function useAgentActions() {
       description: string,
       nodeType?: string,
     ): Promise<ResearchNodeResult> => {
-      const res = await fetch('/api/agents/custom-task', {
+      const res = await fetch(apiUrl('/api/agents/custom-task'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -203,7 +203,7 @@ export function useAgentActions() {
 
   const connectGithub = useCallback(
     async (workspaceId: string, repo: string, accessToken?: string): Promise<ConnectResult> => {
-      const res = await fetch('/api/integrations/github', {
+      const res = await fetch(apiUrl('/api/integrations/github'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -223,7 +223,7 @@ export function useAgentActions() {
 
   const connectPosthog = useCallback(
     async (workspaceId: string, projectId: string, apiKey: string): Promise<ConnectResult> => {
-      const res = await fetch('/api/integrations/posthog', {
+      const res = await fetch(apiUrl('/api/integrations/posthog'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

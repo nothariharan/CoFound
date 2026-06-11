@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import type { ChatMessage, NodeType, UiAction } from '@/types'
+import { apiUrl } from '@/lib/api'
 import { useAgentActions } from '@/hooks/useAgentActions'
 import { useWorkspace } from '@/hooks/useWorkspace'
 import { useWorkspaceStore } from '@/store/workspaceStore'
@@ -13,7 +14,7 @@ import {
 async function transcribeBlob(blob: Blob): Promise<string> {
   const form = new FormData()
   form.append('audio', blob, 'recording.webm')
-  const res = await fetch('/api/voice/stt', { method: 'POST', body: form })
+  const res = await fetch(apiUrl('/api/voice/stt'), { method: 'POST', body: form })
   if (!res.ok) {
     const detail = await res.text()
     throw new Error(detail || 'Speech-to-text failed')
@@ -23,7 +24,7 @@ async function transcribeBlob(blob: Blob): Promise<string> {
 }
 
 async function playTts(text: string): Promise<void> {
-  const res = await fetch('/api/voice/tts', {
+  const res = await fetch(apiUrl('/api/voice/tts'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
