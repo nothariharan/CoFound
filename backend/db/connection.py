@@ -27,7 +27,7 @@ async def connect_db() -> AsyncIOMotorDatabase:
         maxPoolSize=50,
         maxIdleTimeMS=300_000,
         connectTimeoutMS=10_000,
-        serverSelectionTimeoutMS=5_000,
+        serverSelectionTimeoutMS=3_000,
         socketTimeoutMS=30_000,
     )
     _db = _client[db_name]

@@ -1,6 +1,8 @@
+import asyncio
 import logging
 import os
-from contextlib import asynccontextmanager
+import sys
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -23,16 +25,16 @@ from mdb_mcp.agent_store import agent_store_mode, set_agent_store, use_mongodb_m
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def _bootstrap_stores(app: FastAPI) -> None:
     mongodb_uri = os.getenv("MONGODB_URI", "").strip()
     app.state.store = "memory"
     app.state.agent_store = "default"
+    DEFAULT_STORE.set(MemoryGraphStore())
 
     if mongodb_uri:
         try:
             from db.atlas_store import AtlasGraphStore
-            from db.connection import close_db, connect_db
+            from db.connection import connect_db
 
             db = await connect_db()
             DEFAULT_STORE.set(AtlasGraphStore(db))
@@ -44,13 +46,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             DEFAULT_STORE.set(MemoryGraphStore())
             app.state.store = "memory"
     else:
-        DEFAULT_STORE.set(MemoryGraphStore())
         logger.info("MONGODB_URI not set — using in-memory store")
 
     if use_mongodb_mcp_enabled():
         try:
             from db import collections as col
-            from mdb_mcp.client import close_mcp_session, start_mcp_session
+            from mdb_mcp.client import start_mcp_session
             from mdb_mcp.db_ops import mcp_find
             from mdb_mcp.graph_store import McpGraphStore
 
@@ -65,7 +66,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     else:
         logger.info("USE_MONGODB_MCP disabled — agents will use DEFAULT_STORE")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    logger.info("Python %s.%s.%s", *sys.version_info[:3])
+    app.state.store = "memory"
+    app.state.agent_store = "default"
+    DEFAULT_STORE.set(MemoryGraphStore())
+
+    bootstrap_task = asyncio.create_task(_bootstrap_stores(app))
+
     yield
+
+    bootstrap_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await bootstrap_task
 
     if getattr(app.state, "agent_store", None) == "mcp":
         try:
@@ -118,4 +133,5 @@ async def health():
         "store": getattr(app.state, "store", "memory"),
         "agent_store": getattr(app.state, "agent_store", "default"),
         "mongodb_cluster": mcp_cluster_label(),
+        "python": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
     }
