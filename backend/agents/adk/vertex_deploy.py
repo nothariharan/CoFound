@@ -1,6 +1,6 @@
 """Vertex AI Agent Engine deployment helpers.
 
-Requires GCP billing. Not used in the default hackathon runtime path.
+Requires GCP billing. Not used in the default runtime path.
 Enable only when VERTEX_AGENT_ENGINE_ENABLED=true and billing is available.
 """
 

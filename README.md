@@ -176,7 +176,7 @@ Optional Cloud Run / Vertex deployment notes live in `cloud_run/` (disabled by d
 | `POST` | `/api/voice/stt` | Speech-to-text (Deepgram proxy) |
 | `POST` | `/api/voice/tts` | Text-to-speech (Deepgram proxy) |
 
-Full contracts: [team/00_CONTRACT_FREEZE.md](team/00_CONTRACT_FREEZE.md)
+See [docs/architecture.md](docs/architecture.md) and [docs/mongodb_schema.md](docs/mongodb_schema.md) for full API and schema detail.
 
 ---
 
@@ -192,16 +192,9 @@ cofounder/
 │   └── tools/           # Firecrawl, Reddit, Deepgram, GitHub, PostHog
 ├── frontend/            # Vite + React + React Flow canvas
 ├── docs/                # Architecture, schema, banner
-├── team/                # Parallel build guides & API contracts
 ├── scripts/             # Atlas seeding and index setup
 └── cloud_run/           # Optional ADK Planner service (Cloud Run)
 ```
-
----
-
-## Team Build Guide
-
-Building with a team? Start here: **[team/README.md](team/README.md)**
 
 ---
 
