@@ -10,7 +10,7 @@ def test_mcp_graph_store_get_workspace_parses_find_result(monkeypatch):
     workspace = WorkspaceDocument(
         idea_id="idea-123",
         workspace_name="Test Workspace",
-        nodes=[create_core_idea_node("AI copilot for restaurants")],
+        nodes=[create_core_idea_node("inventory app for restaurants")],
     )
     payload = workspace.model_dump(mode="json")
 

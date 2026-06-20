@@ -1,4 +1,4 @@
-"""Node read/update routes."""
+"""node read/update routes"""
 
 from __future__ import annotations
 

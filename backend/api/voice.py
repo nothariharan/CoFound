@@ -1,5 +1,4 @@
-"""Voice proxy routes — Deepgram STT/TTS without exposing API key to browser."""
-
+"""voice proxy routes — deepgram stt/tts without exposing api key to browser"""
 from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, UploadFile

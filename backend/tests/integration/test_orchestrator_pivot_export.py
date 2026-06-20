@@ -121,7 +121,7 @@ def test_export_agent_creates_zip_with_required_files(workspace, memory_store, m
     result = asyncio.run(generate_export(workspace.idea_id, memory_store))
 
     assert result["export_url"].startswith("/api/export/")
-    assert set(result["files"]) >= {"README.md", "tech_stack.md", "ui_spec.md", ".cursorrules", "HANDOFF.md"}
+    assert set(result["files"]) >= {"README.md", "tech_stack.md", "ui_spec.md", "PROJECT_RULES.md", "HANDOFF.md"}
     with ZipFile(result["path"]) as zf:
         names = set(zf.namelist())
         assert set(result["files"]) == names

@@ -1,4 +1,4 @@
-"""Low-level MongoDB operations routed through the MongoDB MCP server."""
+"""low level mongodb operations routed through the mongodb mcp server"""
 
 from __future__ import annotations
 

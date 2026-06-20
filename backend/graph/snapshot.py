@@ -1,4 +1,4 @@
-"""Historical snapshot writer for Decision Journal."""
+"""historical snapshot writer for decision journal"""
 
 from datetime import datetime
 

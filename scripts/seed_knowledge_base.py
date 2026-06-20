@@ -3,26 +3,26 @@ from pymongo import MongoClient
 import glob
 from dotenv import load_dotenv
 
-# Placeholder for an embedding function
+# placeholder for an embedding function
 def get_embedding(text: str):
     """
-    Generates a dummy embedding for the given text.
-    In a real application, this would call an LLM like Gemini 2.5 Pro.
+    generates a dummy embedding for the given text
+    in a real application, this would call an llm like gemini 2.5 pro
     """
-    # Return a dummy embedding of 1536 dimensions (matching the index definition)
+    # return a dummy embedding of 1536 dimensions (matching the index definition)
     return [float(ord(c) % 100) / 100.0 for c in text[:1536].ljust(1536)]
 
 def seed_knowledge_base():
-    load_dotenv() # Load environment variables from .env file
+    load_dotenv() # load environment variables from .env file
 
-    # Retrieve MongoDB URI from environment variables
+    # retrieve mongodb uri from environment variables
     mongodb_uri = os.getenv("MONGODB_URI")
     if not mongodb_uri:
         print("Error: MONGODB_URI environment variable not set.")
         return
 
     client = MongoClient(mongodb_uri)
-    db = client.cofounder # Assuming the database name is 'cofounder'
+    db = client.cofounder # assuming the database name is 'cofounder'
     collection = db.product_knowledge_base
 
     print("Seeding product_knowledge_base collection with framework documents...")
@@ -40,8 +40,8 @@ def seed_knowledge_base():
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # For simplicity, treating the whole file as one chunk.
-            # In a real scenario, content would be chunked.
+            # for simplicity, treating the whole file as one chunk
+            # in a real scenario, content would be chunked
             embedding = get_embedding(content)
 
             document = {

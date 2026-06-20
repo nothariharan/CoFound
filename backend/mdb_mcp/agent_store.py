@@ -1,5 +1,4 @@
-"""Agent store selector — hybrid MCP for agents, Atlas/Memory for API routes."""
-
+"""agent store selector — hybrid mcp for agents, atlas/memory for api routes"""
 from __future__ import annotations
 
 import logging

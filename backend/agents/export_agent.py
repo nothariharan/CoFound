@@ -1,5 +1,4 @@
-"""Scaffold file generator — produces export zip on user approval."""
-
+"""scaffold file generator — produces export zip on user approval"""
 from __future__ import annotations
 
 from agents.store_protocol import GraphStore, publish_workspace_update

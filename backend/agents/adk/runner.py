@@ -1,4 +1,4 @@
-"""Run ADK agents in-process via Google AI API (no Vertex billing)."""
+"""run adk agents in process via google ai api (no vertex billing)"""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def _get_runner() -> tuple["Runner", "InMemorySessionService"]:
 
 
 async def run_planner_agent(prompt: str) -> str:
-    """Execute the ADK Planner agent and return the final text response."""
+    """execute the adk planner agent and return the final text response"""
 
     from google.genai import types
 

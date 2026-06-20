@@ -1,5 +1,4 @@
-"""Tech-tree unlock logic — determines which nodes become visible."""
-
+"""tech tree unlock logic — determines which nodes become visible"""
 from graph.schema import BaseNode, NodeStatus, NodeType, status_from_confidence
 
 UNLOCK_RULES: dict[NodeType, dict] = {
@@ -44,7 +43,7 @@ def prerequisites_met(nodes: list[BaseNode], node_type: NodeType) -> bool:
 
 
 def compute_unlock_states(nodes: list[BaseNode]) -> list[BaseNode]:
-    """Return nodes with updated locked/unlocked status."""
+    """return nodes with updated locked/unlocked status"""
     updated: list[BaseNode] = []
     for node in nodes:
         if node.type == NodeType.CORE_IDEA:

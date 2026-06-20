@@ -1,5 +1,4 @@
-"""Firecrawl integration — competitor landing page scraping."""
-
+"""firecrawl integration — competitor landing page scraping"""
 from __future__ import annotations
 
 import asyncio
@@ -48,7 +47,7 @@ def _search_sync(query: str, key: str, limit: int) -> dict[str, Any]:
         method="POST",
     )
     try:
-        with urlopen(req, timeout=45) as response:  # noqa: S310
+        with urlopen(req, timeout=45) as response:  # noqa: s310
             data = json.loads(response.read().decode("utf-8"))
     except (HTTPError, URLError) as exc:
         return {"tool": "firecrawl", "query": query, "items": [], "sources": ["firecrawl"], "error": str(exc)}
@@ -76,7 +75,7 @@ def _scrape_sync(url: str, key: str) -> dict[str, Any]:
         method="POST",
     )
     try:
-        with urlopen(req, timeout=45) as response:  # noqa: S310
+        with urlopen(req, timeout=45) as response:  # noqa: s310
             data = json.loads(response.read().decode("utf-8"))
     except URLError as exc:
         return {"tool": "firecrawl", "query": url, "items": [], "error": str(exc), "sources": ["firecrawl"]}

@@ -1,5 +1,4 @@
-"""Node read/write/update operations — wired to GraphStore."""
-
+"""node read/write/update operations — wired to graphstore"""
 from __future__ import annotations
 
 from agents.store_protocol import DEFAULT_STORE
@@ -8,7 +7,7 @@ from graph.unlock_engine import compute_unlock_states
 
 
 class NodeManager:
-    """Manages node CRUD against the active GraphStore."""
+    """manages node crud against the active graphstore"""
 
     def __init__(self, store=DEFAULT_STORE) -> None:
         self.store = store

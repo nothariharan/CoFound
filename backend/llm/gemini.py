@@ -1,8 +1,8 @@
-"""Gemini Pro/Flash router.
+"""gemini pro/flash router
 
-Uses the public Gemini REST API via the standard library so the backend does not
-need a heavyweight SDK. If GOOGLE_API_KEY is absent, callers get a minimal
-fallback response so the UI can fail gracefully without fabricated research.
+uses the public gemini rest api via the standard library so the backend does not
+need a heavyweight sdk. if google_api_key is absent, callers get a minimal
+fallback response so the ui can fail gracefully without fabricated research
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ DEFAULT_FLASH_MODEL = "gemini-2.0-flash"
 
 
 class GeminiError(RuntimeError):
-    """Raised when Gemini returns an API error."""
+    """raised when gemini returns an api error"""
 
 
 def _api_key() -> str:
@@ -34,13 +34,13 @@ def _model(kind: str) -> str:
 
 
 async def generate_pro(prompt: str, system: str = "") -> str:
-    """Generate with Gemini Pro for synthesis-heavy agent work."""
+    """generate with gemini pro for synthesis heavy agent work"""
 
     return await _generate(prompt=prompt, system=system, model=_model("pro"), temperature=0.35)
 
 
 async def generate_flash(prompt: str, system: str = "") -> str:
-    """Generate with Gemini Flash for high-volume research/scoring work."""
+    """generate with gemini flash for high volume research/scoring work"""
 
     return await _generate(prompt=prompt, system=system, model=_model("flash"), temperature=0.25)
 
@@ -66,7 +66,7 @@ async def generate_with_tools(
     model_kind: str = "pro",
     temperature: float = 0.35,
 ) -> GeminiToolResult:
-    """Generate with optional function calling."""
+    """generate with optional function calling"""
 
     key = _api_key()
     if not key:
@@ -106,7 +106,7 @@ def _is_rate_limit_error(exc: GeminiError) -> bool:
 
 
 async def generate_pro_resilient(prompt: str, system: str = "") -> str:
-    """Generate with Pro, falling back to Flash then a static message."""
+    """generate with pro, falling back to flash then a static message"""
 
     key = _api_key()
     if not key:
@@ -150,7 +150,7 @@ def _generate_sync(prompt: str, system: str, model: str, key: str, temperature: 
         method="POST",
     )
     try:
-        with urlopen(request, timeout=45) as response:  # noqa: S310 - URL is fixed Gemini endpoint
+        with urlopen(request, timeout=45) as response:  # noqa: s310 - url is fixed gemini endpoint
             data = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
@@ -192,7 +192,7 @@ def _generate_with_tools_sync(
         method="POST",
     )
     try:
-        with urlopen(request, timeout=60) as response:  # noqa: S310
+        with urlopen(request, timeout=60) as response:  # noqa: s310
             data = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")

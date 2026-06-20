@@ -1,5 +1,4 @@
-"""ADK configuration — Gemini API key mode only (no Vertex billing)."""
-
+"""adk configuration — gemini api key mode only (no vertex billing)"""
 from __future__ import annotations
 
 import os
@@ -26,7 +25,7 @@ def vertex_agent_engine_enabled() -> bool:
 
 
 def ensure_api_key_env() -> None:
-    """Expose GOOGLE_API_KEY to google-genai and avoid Vertex mode."""
+    """expose google_api_key to google genai and avoid vertex mode"""
 
     key = get_api_key()
     if not key:

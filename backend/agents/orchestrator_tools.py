@@ -1,4 +1,4 @@
-"""Tool schemas and executors for the conversational orchestrator."""
+"""tool schemas and executors for the conversational orchestrator"""
 
 from __future__ import annotations
 
@@ -168,7 +168,7 @@ async def execute_tool(
     workspace_id: str,
     store: GraphStore | None = None,
 ) -> dict[str, Any]:
-    """Run a tool and return a JSON-serializable result."""
+    """run a tool and return a json serializable result"""
     store = store or get_agent_store()
 
     if name == "get_workspace_summary":

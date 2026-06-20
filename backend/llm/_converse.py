@@ -1,4 +1,4 @@
-"""Remote orchestrator LLM via Converse API (credentials from env only)."""
+"""remote orchestrator llm via converse api (credentials from env only)"""
 
 from __future__ import annotations
 

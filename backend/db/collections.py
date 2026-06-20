@@ -1,4 +1,4 @@
-"""MongoDB collection name constants."""
+"""mongodb collection name constants"""
 
 STARTUP_GRAPHS = "startup_graphs"
 TASK_QUEUE = "task_queue"

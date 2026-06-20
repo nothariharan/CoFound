@@ -1,5 +1,4 @@
-"""GitHub polling agent — updates Build Node every 5 minutes."""
-
+"""github polling agent — updates build node every 5 minutes"""
 from __future__ import annotations
 
 from typing import Any

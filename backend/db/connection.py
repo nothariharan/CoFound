@@ -1,4 +1,4 @@
-"""Motor client helpers for MongoDB Atlas."""
+"""motor helpers for atlas connection"""
 
 from __future__ import annotations
 
@@ -12,14 +12,14 @@ _db: AsyncIOMotorDatabase | None = None
 
 
 async def connect_db() -> AsyncIOMotorDatabase:
-    """Connect to MongoDB Atlas and return the database handle."""
+    """connect to atlas and return the db handle"""
 
     global _client, _db
     uri = os.getenv("MONGODB_URI", "").strip()
     if not uri:
         raise RuntimeError("MONGODB_URI is not configured")
     db_name = os.getenv("MONGODB_DB", "cofounder").strip() or "cofounder"
-    # Long-running FastAPI service: reuse one client, pre-warm a small pool for agent polling.
+    # reuse one client for long running service
     _client = AsyncIOMotorClient(
         uri,
         tlsCAFile=certifi.where(),
@@ -36,7 +36,7 @@ async def connect_db() -> AsyncIOMotorDatabase:
 
 
 async def close_db() -> None:
-    """Close the Motor client."""
+    """close the motor client"""
 
     global _client, _db
     if _client is not None:
@@ -46,7 +46,7 @@ async def close_db() -> None:
 
 
 def get_db() -> AsyncIOMotorDatabase:
-    """Return the active database handle."""
+    """return the active database handle"""
 
     if _db is None:
         raise RuntimeError("Database is not connected")
@@ -54,6 +54,6 @@ def get_db() -> AsyncIOMotorDatabase:
 
 
 def is_connected() -> bool:
-    """Whether a database connection is active."""
+    """whether a database connection is active"""
 
     return _db is not None

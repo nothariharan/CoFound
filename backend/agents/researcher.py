@@ -1,5 +1,4 @@
-"""Karpathy self-critique research loop — spawned N times by orchestrator."""
-
+"""karpathy self critique research loop — spawned n times by orchestrator"""
 from __future__ import annotations
 
 import asyncio
@@ -152,7 +151,7 @@ async def _commit(store: GraphStore, workspace_id: str, task: ResearchTask, resu
     if hasattr(store, "commit_research_result"):
         await getattr(store, "commit_research_result")(workspace_id, task, result, score)
         return
-    # Atlas GraphStore may not expose a helper; update an existing matching node if present.
+    # atlas graphstore may not expose a helper; update an existing matching node if present
     workspace = await store.get_workspace(workspace_id)
     if workspace is None:
         raise ValueError(f"Workspace not found: {workspace_id}")

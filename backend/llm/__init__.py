@@ -1,4 +1,4 @@
-"""LLM helpers for Track B agents."""
+"""llm helpers for agent modules"""
 
 from .gemini import generate_flash, generate_pro
 

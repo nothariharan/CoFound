@@ -1,5 +1,4 @@
-"""Deepgram STT/TTS helpers — API key stays server-side."""
-
+"""deepgram stt/tts helpers — api key stays server side"""
 from __future__ import annotations
 
 import asyncio
@@ -48,7 +47,7 @@ def _transcribe_sync(audio_bytes: bytes, content_type: str, key: str) -> str:
         method="POST",
     )
     try:
-        with urlopen(request, timeout=45) as response:  # noqa: S310
+        with urlopen(request, timeout=45) as response:  # noqa: s310
             data = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
@@ -76,7 +75,7 @@ def _synthesize_sync(text: str, key: str) -> bytes:
         method="POST",
     )
     try:
-        with urlopen(request, timeout=45) as response:  # noqa: S310
+        with urlopen(request, timeout=45) as response:  # noqa: s310
             return response.read()
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")

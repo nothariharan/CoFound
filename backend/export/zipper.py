@@ -1,4 +1,4 @@
-"""Cloud Run zip assembly and serving."""
+"""cloud run zip assembly and serving"""
 
 from __future__ import annotations
 

@@ -1,5 +1,4 @@
-"""PostHog funnel monitor — detects conversion drops."""
-
+"""posthog funnel monitor — detects conversion drops"""
 from __future__ import annotations
 
 from typing import Any

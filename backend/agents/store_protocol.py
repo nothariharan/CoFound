@@ -1,7 +1,7 @@
-"""Track B GraphStore protocol and interim memory implementation.
+"""graph store protocol and in memory fallback
 
-Agents depend on this protocol instead of MongoDB details.  Track A can swap in an
-Atlas-backed implementation with the same methods.
+agents use this instead of talking to mongodb directly
+atlas backed store swaps in with the same methods
 """
 
 from __future__ import annotations
@@ -53,7 +53,7 @@ class GraphStore(Protocol):
 
 
 class MemoryGraphStore:
-    """Small interim GraphStore backed by the repo's current in-memory dict."""
+    """small interim graphstore backed by the repo's current in memory dict"""
 
     def __init__(self) -> None:
         self.workspaces: dict[str, WorkspaceDocument] = MEMORY_WORKSPACES
@@ -178,7 +178,7 @@ class MemoryGraphStore:
         )
 
     async def search_knowledge_base(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
-        # Minimal local fallback used only when Atlas knowledge-base search is unavailable.
+        # minimal local fallback used only when atlas knowledge base search is unavailable
         return [
             {"title": "PMF heuristic", "snippet": "Prefer tasks that validate painful, frequent, budgeted problems."},
             {"title": "Competitor heuristic", "snippet": "List direct, indirect, and do-nothing alternatives."},
@@ -302,7 +302,7 @@ def _merge_source_pills(existing: list[SourcePill], new: list[SourcePill]) -> li
 
 
 class StoreProxy:
-    """Mutable proxy so lifespan can swap MemoryGraphStore for AtlasGraphStore."""
+    """mutable proxy so lifespan can swap memorygraphstore for atlasgraphstore"""
 
     def __init__(self) -> None:
         self._store: GraphStore = MemoryGraphStore()

@@ -1,4 +1,4 @@
-"""Persistent MongoDB MCP client session for runtime agent persistence."""
+"""persistent mongodb mcp client session for runtime agent persistence"""
 
 from __future__ import annotations
 

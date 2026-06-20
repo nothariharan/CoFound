@@ -1,4 +1,4 @@
-"""Standalone ADK Planner service for Cloud Run deployment."""
+"""standalone adk planner service for cloud run deployment"""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ if BACKEND_ROOT.exists():
 elif str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
-from agents.adk.runner import run_planner_agent  # noqa: E402
+from agents.adk.runner import run_planner_agent  # noqa: e402
 
 app = FastAPI(title="CoFounder ADK Planner Service", version="0.1.0")
 

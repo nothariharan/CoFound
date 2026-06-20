@@ -1,4 +1,4 @@
-"""Agent-facing GraphStore backed by MongoDB MCP server tools."""
+"""agent facing graphstore backed by mongodb mcp server tools"""
 
 from __future__ import annotations
 

@@ -1,5 +1,4 @@
-"""Conversational orchestrator — tool-calling chat loop."""
-
+"""conversational orchestrator — tool calling chat loop"""
 from __future__ import annotations
 
 import json

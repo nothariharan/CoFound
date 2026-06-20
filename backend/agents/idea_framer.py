@@ -1,4 +1,4 @@
-"""Initial idea framing for user-approved workflows."""
+"""initial idea framing for user approved workflows"""
 
 from __future__ import annotations
 

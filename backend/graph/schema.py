@@ -1,4 +1,4 @@
-"""MongoDB document schemas for the startup graph."""
+"""mongodb document schemas for the startup graph"""
 
 from datetime import datetime
 from enum import Enum

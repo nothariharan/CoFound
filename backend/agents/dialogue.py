@@ -1,5 +1,4 @@
-"""Synthesis + targeted question agent — post-research dialogue."""
-
+"""synthesis + targeted question agent — post research dialogue"""
 from __future__ import annotations
 
 import json
@@ -25,7 +24,7 @@ async def synthesize_dialogue(workspace_id: str, store: GraphStore | None = None
     except Exception:
         data = {"brief": raw, "question": _fallback_question(workspace)}
     question = str(data.get("question") or _fallback_question(workspace)).strip().split("\n")[0]
-    # Ensure exactly one question mark in response field.
+    # ensure exactly one question mark in response field
     if "?" in question:
         question = question.split("?")[0].strip() + "?"
     else:

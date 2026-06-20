@@ -1,5 +1,4 @@
-"""Orchestrator LLM router — optional remote provider when credentials are present, else Gemini."""
-
+"""orchestrator llm router — optional remote provider when credentials are present, else gemini"""
 from __future__ import annotations
 
 from typing import Any

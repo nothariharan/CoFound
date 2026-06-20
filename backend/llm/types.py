@@ -1,4 +1,4 @@
-"""Shared LLM tool-calling types."""
+"""shared llm tool calling types"""
 
 from __future__ import annotations
 

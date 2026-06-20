@@ -1,4 +1,4 @@
-"""GitHub + PostHog integration routes."""
+"""github + posthog integration routes"""
 
 from __future__ import annotations
 

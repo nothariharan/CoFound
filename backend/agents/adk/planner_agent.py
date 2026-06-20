@@ -1,5 +1,4 @@
-"""ADK Planner agent — decomposes workspace state into research tasks."""
-
+"""adk planner agent — decomposes workspace state into research tasks"""
 from __future__ import annotations
 
 from google.adk.agents import Agent

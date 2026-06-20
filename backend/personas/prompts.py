@@ -1,5 +1,4 @@
-"""Persona lens system prompts — Jobs, Graham, Grove, Keller."""
-
+"""persona lens system prompts — jobs, graham, grove, keller"""
 PERSONAS = {
     "steve_jobs": {
         "name": "Steve Jobs",

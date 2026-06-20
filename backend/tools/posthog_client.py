@@ -1,5 +1,4 @@
-"""PostHog API — funnel conversion signal reading."""
-
+"""posthog api — funnel conversion signal reading"""
 from __future__ import annotations
 
 import asyncio
@@ -21,7 +20,7 @@ def _get_funnel_sync(project_id: str, api_key: str) -> dict[str, Any]:
     url = f"https://app.posthog.com/api/projects/{project_id}/insights/trend/"
     req = Request(url, headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
     try:
-        with urlopen(req, timeout=30) as response:  # noqa: S310
+        with urlopen(req, timeout=30) as response:  # noqa: s310
             data = json.loads(response.read().decode("utf-8"))
         return {"tool": "posthog", "project_id": project_id, "data": data, "sources": ["posthog"]}
     except Exception as exc:

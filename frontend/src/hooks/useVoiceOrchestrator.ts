@@ -153,7 +153,7 @@ export function useVoiceOrchestrator() {
           try {
             await playTts(speakText)
           } catch {
-            // TTS optional — chat still works
+            // tts optional — chat still works
           }
         }
       } catch (error) {

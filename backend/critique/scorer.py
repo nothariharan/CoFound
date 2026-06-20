@@ -1,4 +1,4 @@
-"""0-100 self-critique quality scorer for research results."""
+"""0 100 self critique quality scorer for research results"""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ async def score(result: dict[str, Any], task: str) -> CritiqueResult:
 
 
 def _calibrate_score(model_score: int, heuristic: int) -> int:
-    """Prevent an over-optimistic LLM/mock from accepting evidence-poor results."""
+    """prevent an over optimistic llm/mock from accepting evidence poor results"""
 
     if heuristic < 50:
         return min(model_score, 49)

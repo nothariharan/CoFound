@@ -3,7 +3,7 @@ import { gsap, useGSAP } from '@/lib/gsap'
 import { createMotionMatchMedia, motionDuration } from '@/lib/gsap'
 import { CursorLabel, CursorPointerIcon } from '@/components/cursor/CursorLabel'
 
-/** Cursor icon tip points upper-left at 0deg; offset so tip aims at target angle. */
+/** cursor icon tip points upper left at 0deg offset so tip aims at target angle */
 const POINTER_ANGLE_OFFSET = 135
 
 const AGENTS = [

@@ -1,4 +1,4 @@
-"""Entry point alias for ADK Planner Cloud Run deployments."""
+"""entry point alias for adk planner cloud run deployments"""
 
 from main import app
 

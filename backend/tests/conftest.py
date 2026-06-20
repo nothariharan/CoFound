@@ -23,8 +23,8 @@ def clear_memory_store():
 @pytest.fixture
 def workspace():
     ws = WorkspaceDocument(
-        workspace_name="Restaurant Inventory Copilot",
-        nodes=[create_core_idea_node("AI copilot for restaurant owners to manage inventory and reduce waste")],
+        workspace_name="KitchenOps",
+        nodes=[create_core_idea_node("inventory app for restaurant owners to manage stock and reduce waste")],
     )
     MEMORY_WORKSPACES[ws.idea_id] = ws
     return ws

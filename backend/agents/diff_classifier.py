@@ -1,5 +1,4 @@
-"""Surgical re-research classifier — identifies affected nodes on pivot."""
-
+"""surgical re research classifier — identifies affected nodes on pivot"""
 from __future__ import annotations
 
 import json

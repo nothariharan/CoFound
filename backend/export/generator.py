@@ -1,4 +1,4 @@
-"""Gemini-powered export file generation."""
+"""export file generation powered by gemini"""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ async def generate_export_files(workspace: WorkspaceDocument) -> dict[str, str]:
         "README.md": await _generate_or_fallback("README", context, _readme(workspace, base)),
         "tech_stack.md": await _generate_or_fallback("tech stack", context, _tech_stack(workspace, base)),
         "ui_spec.md": await _generate_or_fallback("UI spec", context, _ui_spec(workspace, base)),
-        ".cursorrules": await _generate_or_fallback("Cursor rules", context, _cursor_rules(workspace, base)),
+        "PROJECT_RULES.md": await _generate_or_fallback("project rules", context, _project_rules(workspace, base)),
         "HANDOFF.md": await _generate_or_fallback("handoff", context, _handoff(workspace, base)),
     }
     return files
@@ -48,7 +48,7 @@ def _ui_spec(workspace: WorkspaceDocument, base: str) -> str:
     return f"# UI Spec\n\n- Graph-first dashboard with node confidence, source pills, and active agents.\n- Agent feed streams critique and progress events.\n- Export action appears once core graph nodes are validated.\n\n## Relevant Graph\n{base}\n"
 
 
-def _cursor_rules(workspace: WorkspaceDocument, base: str) -> str:
+def _project_rules(workspace: WorkspaceDocument, base: str) -> str:
     return f"Always preserve the startup graph contract. Use evidence-backed changes. Prioritize the validated audience, revenue, and product vision nodes for {workspace.workspace_name}.\n"
 
 

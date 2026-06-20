@@ -1,4 +1,4 @@
-"""MongoDB MCP configuration for the CoFound cluster."""
+"""mongodb mcp configuration for the cofound cluster"""
 
 from __future__ import annotations
 

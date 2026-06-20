@@ -1,8 +1,8 @@
-"""Reddit-labeled community research.
+"""reddit labeled community research
 
-Reddit blocks the unauthenticated JSON search endpoint from many environments,
-so this module keeps the old import path while delegating to Scrapling's broad
-web/community scraper.
+reddit blocks the unauthenticated json search endpoint from many environments
+so this module keeps the old import path while delegating to scrapling's broad
+web/community scraper
 """
 
 from __future__ import annotations

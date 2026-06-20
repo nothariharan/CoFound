@@ -68,11 +68,11 @@ def test_workspace_create_frames_without_starting_research(monkeypatch, memory_s
     workspace_api.DEFAULT_STORE.set(memory_store)
     async def fake_frame(idea: str):
         return {
-            "workspace_name": "KitchenOps Copilot",
-            "core_title": "Restaurant Waste Copilot",
+            "workspace_name": "KitchenOps",
+            "core_title": "Restaurant Waste Tracker",
             "problem": "Restaurants waste inventory.",
             "solution": "Predict stock needs.",
-            "one_liner": "AI inventory planning for restaurants.",
+            "one_liner": "Inventory planning for restaurants.",
             "confidence": 72,
         }
 
@@ -80,17 +80,17 @@ def test_workspace_create_frames_without_starting_research(monkeypatch, memory_s
 
     response = asyncio.run(
         workspace_api.create_workspace(
-            WorkspaceCreateRequest(idea="AI copilot for restaurant owners to manage inventory and reduce waste")
+            WorkspaceCreateRequest(idea="inventory app for restaurant owners to manage inventory and reduce waste")
         )
     )
 
-    assert response.workspace_name == "KitchenOps Copilot"
-    assert response.nodes[0]["title"] == "Restaurant Waste Copilot"
+    assert response.workspace_name == "KitchenOps"
+    assert response.nodes[0]["title"] == "Restaurant Waste Tracker"
     assert response.nodes[0]["confidence"] == 72
     assert memory_store.task_queue == []
 
 
-def test_main_app_includes_track_b_routers():
+def test_main_app_includes_agent_routers():
     paths = {route.path for route in app.routes}
 
     assert "/api/agents/spawn" in paths

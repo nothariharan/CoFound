@@ -1,4 +1,4 @@
-"""Atlas-backed GraphStore implementation."""
+"""atlas backed graphstore implementation"""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def _now_utc() -> datetime:
 
 
 class AtlasGraphStore:
-    """Production GraphStore backed by MongoDB Atlas."""
+    """production graphstore backed by mongodb atlas"""
 
     def __init__(self, db: AsyncIOMotorDatabase) -> None:
         self.workspaces = db[col.STARTUP_GRAPHS]

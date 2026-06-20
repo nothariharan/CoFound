@@ -1,7 +1,7 @@
-"""Vertex AI Agent Engine deployment helpers.
+"""vertex ai agent engine deployment helpers
 
-Requires GCP billing. Not used in the default runtime path.
-Enable only when VERTEX_AGENT_ENGINE_ENABLED=true and billing is available.
+requires gcp billing. not used in the default runtime path
+enable only when vertex_agent_engine_enabled=true and billing is available
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ def deploy_to_agent_engine(
     location: str = "us-central1",
     display_name: str = "cofounder-planner",
 ) -> str:
-    """Deploy the ADK Planner to Vertex AI Agent Engine (billing required)."""
+    """deploy the adk planner to vertex ai agent engine (billing required)"""
 
     if not vertex_agent_engine_enabled():
         raise RuntimeError(
@@ -48,7 +48,7 @@ def deploy_to_agent_engine(
 
 
 def deployment_status() -> dict[str, str]:
-    """Return deployment metadata for README and ops dashboards."""
+    """return deployment metadata for readme and ops dashboards"""
 
     return {
         "framework": "google-adk",

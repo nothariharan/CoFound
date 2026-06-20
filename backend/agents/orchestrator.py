@@ -1,5 +1,4 @@
-"""Master orchestrator — reads graph state, spawns specialist agents."""
-
+"""master orchestrator — reads graph state, spawns specialist agents"""
 from __future__ import annotations
 
 import asyncio
@@ -32,7 +31,7 @@ async def spawn_research_session(
     agents_active: int = 2,
     run_inline: bool = False,
 ) -> OrchestratorResult:
-    """Read workspace, create tasks if needed, and start researcher workers."""
+    """read workspace, create tasks if needed, and start researcher workers"""
 
     store = store or get_agent_store()
     session_id = str(uuid4())

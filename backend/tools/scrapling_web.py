@@ -1,7 +1,7 @@
-"""Broad web/community research using Scrapling.
+"""broad web/community research using scrapling
 
-Scrapling is used for wide, low-cost web discovery. Firecrawl remains the
-targeted scraper for specific pages and high-intent searches.
+scrapling is used for wide, low cost web discovery. firecrawl remains the
+targeted scraper for specific pages and high intent searches
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ class SearchTarget:
 
 
 async def search_broad(query: str, limit: int = 5) -> dict[str, Any]:
-    """Search broad community/web surfaces and return CoFounder tool JSON."""
+    """search broad community/web surfaces and return cofounder tool json"""
 
     return await asyncio.to_thread(_search_broad_sync, query, limit)
 
@@ -80,7 +80,7 @@ def _search_broad_sync(query: str, limit: int) -> dict[str, Any]:
 
 
 def _fetch_tiered(url: str) -> Any:
-    """Try Scrapling's lightweight HTTP fetch first, then browser stealth."""
+    """try scrapling's lightweight http fetch first, then browser stealth"""
 
     try:
         from scrapling.fetchers import FetcherSession

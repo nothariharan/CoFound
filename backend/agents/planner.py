@@ -1,5 +1,4 @@
-"""Task manifest generator — decomposes idea into research tasks."""
-
+"""task manifest generator — decomposes idea into research tasks"""
 from __future__ import annotations
 
 import json
@@ -19,7 +18,7 @@ Node types: audience, market_intelligence, competitors, revenue, product_vision,
 
 
 async def plan(workspace: WorkspaceDocument, store: GraphStore) -> list[ResearchTask]:
-    """Create and enqueue a task manifest for a workspace."""
+    """create and enqueue a task manifest for a workspace"""
 
     await feed.publish(
         workspace.idea_id,

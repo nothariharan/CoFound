@@ -1,5 +1,4 @@
-"""Growth recommendation generator — triggered on observe signals."""
-
+"""growth recommendation generator — triggered on observe signals"""
 from __future__ import annotations
 
 import json

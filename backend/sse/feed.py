@@ -1,4 +1,4 @@
-"""Server-Sent Events live stream helpers."""
+"""server sent events live stream helpers"""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ class SSEFeed:
             try:
                 queue.put_nowait(payload)
             except asyncio.QueueFull:
-                # Drop slow consumers; browser will reconnect and replay recent history.
+                # drop slow consumers; browser will reconnect and replay recent history
                 self._subscribers[workspace_id].discard(queue)
 
     async def subscribe(self, workspace_id: str) -> AsyncIterator[dict[str, Any]]:
