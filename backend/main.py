@@ -1,3 +1,5 @@
+"""fastapi entrypoint — wires routes and boots atlas + mcp in the background"""
+
 import asyncio
 import logging
 import os
@@ -10,6 +12,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# load root .env before anything else touches os.environ
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from agents.store_protocol import DEFAULT_STORE, MemoryGraphStore
@@ -26,11 +29,14 @@ logger = logging.getLogger(__name__)
 
 
 async def _bootstrap_stores(app: FastAPI) -> None:
+    """connect atlas for crud and mcp for agent loops — falls back to memory on failure"""
+
     mongodb_uri = os.getenv("MONGODB_URI", "").strip()
     app.state.store = "memory"
     app.state.agent_store = "default"
     DEFAULT_STORE.set(MemoryGraphStore())
 
+    # workspace routes use motor directly
     if mongodb_uri:
         try:
             from db.atlas_store import AtlasGraphStore
@@ -48,6 +54,7 @@ async def _bootstrap_stores(app: FastAPI) -> None:
     else:
         logger.info("MONGODB_URI not set — using in-memory store")
 
+    # agent spawn research pivot export go through mcp when enabled
     if use_mongodb_mcp_enabled():
         try:
             from db import collections as col
@@ -69,11 +76,14 @@ async def _bootstrap_stores(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """start with memory store immediately so /health works on render before atlas boots"""
+
     logger.info("Python %s.%s.%s", *sys.version_info[:3])
     app.state.store = "memory"
     app.state.agent_store = "default"
     DEFAULT_STORE.set(MemoryGraphStore())
 
+    # non blocking bootstrap — render health check passes while atlas/mcp connect
     bootstrap_task = asyncio.create_task(_bootstrap_stores(app))
 
     yield
@@ -115,6 +125,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# route groups — each file in api/ owns one slice
 app.include_router(workspace_router, prefix="/api")
 app.include_router(nodes_router, prefix="/api")
 app.include_router(feed_router, prefix="/api")
@@ -126,6 +137,8 @@ app.include_router(voice_router, prefix="/api")
 
 @app.get("/health")
 async def health():
+    """render pings this — must return fast even while mcp is still starting"""
+
     from mdb_mcp.mongodb_mcp import mcp_cluster_label
 
     return {

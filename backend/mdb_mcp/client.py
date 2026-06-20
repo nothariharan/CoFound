@@ -31,6 +31,7 @@ class McpSessionManager:
         return self._ready and self._session is not None
 
     async def start(self) -> None:
+        # spawns mongodb-mcp-server as subprocess via npx on render
         connection_string = get_mcp_connection_string()
         if not connection_string:
             raise RuntimeError("MDB_MCP_CONNECTION_STRING is not configured")

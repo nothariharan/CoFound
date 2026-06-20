@@ -1,4 +1,5 @@
-"""agent spawn/status routes — day 3 4"""
+"""agent routes — spawn research, pivot, dialogue, priority, observe, build"""
+
 from __future__ import annotations
 
 import asyncio
@@ -109,6 +110,8 @@ class OrchestratorChatResponse(BaseModel):
     ui_actions: list[dict[str, object]] = []
 
 
+# --- voice orb chat (tool calling + ui actions) ---
+
 @router.post("/orchestrator/chat", response_model=OrchestratorChatResponse)
 async def orchestrator_chat_route(payload: OrchestratorChatRequest):
     if not payload.message.strip():
@@ -130,6 +133,8 @@ async def orchestrator_chat_route(payload: OrchestratorChatRequest):
     )
 
 
+# --- bulk research session (adk planner + parallel researchers) ---
+
 @router.post("/agents/spawn", response_model=SpawnResponse)
 async def spawn_agents(payload: SpawnRequest):
     try:
@@ -138,6 +143,8 @@ async def spawn_agents(payload: SpawnRequest):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return SpawnResponse(session_id=result.session_id, tasks_queued=result.tasks_queued, agents_active=result.agents_active)
 
+
+# --- surgical pivot (diff classifier resets only affected nodes) ---
 
 @router.post("/agents/pivot")
 async def pivot_agents(payload: PivotRequest):

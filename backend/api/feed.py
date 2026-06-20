@@ -1,3 +1,5 @@
+"""sse feed endpoint — browser subscribes here for live agent lines"""
+
 from fastapi import APIRouter, Request
 from sse_starlette.sse import EventSourceResponse
 
@@ -8,6 +10,7 @@ router = APIRouter(tags=["feed"])
 
 @router.get("/feed")
 async def agent_feed(request: Request, workspace_id: str | None = None):
+    # global stream when no workspace_id — mostly for dev
     stream_id = workspace_id or "global"
 
     async def event_generator():

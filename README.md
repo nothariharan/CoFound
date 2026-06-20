@@ -1,96 +1,83 @@
-![CoFounder — The Startup Founder Operating System](docs/banner.png)
+![cofounder banner](docs/banner.png)
 
-# CoFounder
+# cofounder
 
-**The Startup Founder Operating System** — a persistent AI workspace that takes a startup from raw idea to validated, built, launched, and growing company.
+startup os in a browser — drop an idea, get a living graph, agents do the annoying research bits
 
-CoFounder represents your startup as a **living knowledge graph**. A central orchestrator coordinates specialist sub-agents, streams live progress, and surfaces the highest-ROI next action — all backed by MongoDB Atlas and Google Gemini.
+your startup becomes an **11-node knowledge graph**. one orchestrator runs the show, researchers fill the nodes, sse streams the chaos live, and you get one clear **today's priority** when you need to actually do something
 
-**Live Demo:** [cofounder-alpha.vercel.app](https://cofounder-alpha.vercel.app)
-
-**Repository:** [github.com/nothariharan/CoFound](https://github.com/nothariharan/CoFound)
-
----
-
-## What CoFounder Does
-
-- **Knowledge graph canvas** — 11-node startup tech tree with confidence rings, unlock logic, and live agent chips
-- **Multi-agent research** — Orchestrator spawns parallel researchers on canonical nodes or dynamic custom research topics
-- **Voice-first orchestrator** — Talk or type to start research, get status, hand off priorities, pivot, and export
-- **Live activity feed** — Server-Sent Events stream agent progress in real time
-- **Surgical pivot** — Diff classifier resets only affected nodes when the idea changes
-- **Integrations** — GitHub (build signals) and PostHog (funnel observe)
-- **Export package** — Download a scaffold zip when the graph is ready
+**live** → [cofounder-alpha.vercel.app](https://cofounder-alpha.vercel.app)  
+**repo** → [github.com/nothariharan/CoFound](https://github.com/nothariharan/CoFound)
 
 ---
 
-## Platform Requirements
+## what you get
 
-CoFounder is built on a core platform stack and uses each integration at runtime:
+- **canvas** — react flow graph w/ confidence rings, unlock logic, agent chips on each node
+- **research agents** — spawn on canonical nodes or spin up custom research nodes on demand
+- **voice orb** — talk or type to spawn research, pivot, export, hand off priorities
+- **live feed** — sse pushes agent lines + graph updates while stuff runs
+- **surgical pivot** — diff classifier only resets nodes that actually changed
+- **integrations** — github for build signals, posthog for funnel drops, reddit + web for market evidence
+- **export** — scaffold zip when revenue + product + tech are ready (readme, stack, ui spec, project rules, handoff)
 
-| Requirement | Implementation |
-|-------------|----------------|
-| **MongoDB Atlas** | Workspace graph, task queue, decision journal, dead-end log, build/observe events, vector knowledge base |
-| **MongoDB MCP Server** | Official [`mongodb-mcp-server`](https://github.com/mongodb-js/mongodb-mcp-server) — agent persistence via `find`, `aggregate`, `insert-many`, `update-many` at runtime |
-| **Google Gemini 2.5 Pro** | Orchestrator synthesis, dialogue agent, diff classifier, export narrative |
-| **Google Gemini Flash** | High-volume researcher loops and critique scoring |
-| **Google ADK (Agent Development Kit)** | `cofounder_planner` decomposes workspace state into research tasks via `google-adk` |
-| **Research tools** | Firecrawl, Reddit, Scrapling (web + community evidence) |
-| **Voice (optional)** | Deepgram STT/TTS proxied server-side for the orchestrator orb |
+---
 
-### MongoDB Atlas use cases (7+)
+## stack (the boring but important bit)
 
-1. Knowledge graph storage (`startup_graphs`)
-2. Agent task queue (`task_queue`)
-3. Vector / knowledge-base search (`product_knowledge_base`)
-4. Decision journal (`decision_journal`)
-5. Dead-end log (`dead_ends`)
-6. Build event store (`build_events`)
-7. Observe event store (`observe_events`)
+| thing | what it does here |
+|-------|-------------------|
+| mongodb atlas | graph, task queue, journal, build/observe events, vector kb |
+| mongodb mcp | agents read/write graph at runtime via official mcp server |
+| gemini 2.5 pro | orchestrator, dialogue, pivot classifier, export narrative |
+| gemini flash | researcher loops + critique scoring |
+| google adk | planner breaks workspace into research tasks |
+| firecrawl + scrapling + reddit | market + community evidence |
+| deepgram (opt) | voice stt/tts through backend proxy |
 
-### Verify the stack is live
+ping it when backend is up:
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-Expected when fully configured:
+happy path looks like:
 
 ```json
 {"status":"ok","store":"atlas","agent_store":"mcp","mongodb_cluster":"CoFound"}
 ```
 
-Trigger a research spawn and confirm the agent feed shows `[Planner/ADK]` and `[MongoDB MCP]` lines.
+spawn research and watch the feed for `[Planner/ADK]` and `[MongoDB MCP]` lines
 
 ---
 
-## Quick Start
+## run it locally
 
-### Prerequisites
+**deps**
 
-- Python 3.11+
-- Node.js 20+ (required for `mongodb-mcp-server` at runtime)
-- MongoDB Atlas cluster
-- [Google AI Studio API key](https://aistudio.google.com/app/apikey) (`GOOGLE_API_KEY`)
+- python 3.11+ (3.13 local pytest might cry, prod uses 3.11)
+- node 20+ (mcp server spawns via npx)
+- atlas cluster
+- [google ai studio key](https://aistudio.google.com/app/apikey)
 
-### Backend
+**backend**
 
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS / Linux
+.venv\Scripts\activate        # windows
+# source .venv/bin/activate   # mac/linux
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-Scrapling powers broad web/community research. For browser-backed stealth fetching on blocked pages:
+blocked pages need scrapling browser fetch:
 
 ```bash
 scrapling install
 ```
 
-### Frontend
+**frontend**
 
 ```bash
 cd frontend
@@ -98,9 +85,9 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) — enter your idea to open the workspace.
+→ [localhost:5173](http://localhost:5173) — type an idea, you're in
 
-### Docker (optional)
+**docker** (if you hate manual setup)
 
 ```bash
 cp .env.example .env
@@ -109,95 +96,87 @@ docker compose up
 
 ---
 
-## Environment
+## env
 
-Copy `.env.example` to `.env` at the repo root and fill in:
+copy `.env.example` → `.env` at repo root
 
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `MONGODB_URI` | Yes | Atlas connection for workspace API routes |
-| `MDB_MCP_CONNECTION_STRING` | Yes | Same URI for MongoDB MCP server (agent persistence) |
-| `USE_MONGODB_MCP` | Yes | Set `true` to route agents through MCP |
-| `GOOGLE_API_KEY` | Yes | Gemini + Google ADK Planner |
-| `GEMINI_PRO_MODEL` | No | Default `gemini-2.5-pro` |
-| `FIRECRAWL_API_KEY` | No | Web research tool |
-| `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | No | Community research tool |
-| `DEEPGRAM_API_KEY` | No | Voice STT/TTS for orchestrator |
-| `GITHUB_TOKEN` | No | Build node integration |
-| `POSTHOG_API_KEY` | No | Observe node integration |
+| var | req | notes |
+|-----|-----|-------|
+| `MONGODB_URI` | y | atlas for workspace crud |
+| `MDB_MCP_CONNECTION_STRING` | y | same uri, mcp agent store |
+| `USE_MONGODB_MCP` | y | `true` = agents go through mcp |
+| `GOOGLE_API_KEY` | y | gemini + adk planner |
+| `GEMINI_PRO_MODEL` | n | default `gemini-2.5-pro` |
+| `FIRECRAWL_API_KEY` | n | web research |
+| `REDDIT_CLIENT_ID` / `SECRET` | n | community research |
+| `DEEPGRAM_API_KEY` | n | voice |
+| `GITHUB_TOKEN` | n | build node |
+| `POSTHOG_API_KEY` | n | observe node |
+| `CORS_ORIGINS` | n | comma sep, include your vercel url in prod |
 
-Start the backend from the repo root so `main.py` loads the root `.env`.
+run uvicorn from repo root so `main.py` picks up root `.env`
 
 ---
 
-## Architecture
+## how it flows
 
 ```
-User Input → Orchestrator → Planner (ADK) → Researcher(s) → MongoDB Graph
-                ↓                                    ↓
-         Voice / Chat UI                      SSE Feed → Frontend
-                ↓
-         Today's Priority
+idea → orchestrator → adk planner → researchers → mongodb graph
+           ↓                              ↓
+    voice / chat ui                  sse → frontend
+           ↓
+    today's priority
 ```
 
-See [docs/architecture.md](docs/architecture.md) and [docs/mongodb_schema.md](docs/mongodb_schema.md) for full detail.
+deeper docs → [architecture](docs/architecture.md) · [mongodb schema](docs/mongodb_schema.md)
 
-### MongoDB MCP integration
+**two db paths (same atlas db)**
 
-| Piece | Path |
-|-------|------|
-| MCP client | `backend/mdb_mcp/client.py` |
-| Agent store | `backend/mdb_mcp/graph_store.py` |
-| Runtime path | `POST /api/agents/spawn` → `get_agent_store()` → MCP tools |
+- workspace crud → motor direct (`/api/workspace`)
+- agent orchestration → mcp graph store (`/api/agents/*`)
 
-Workspace CRUD (`/api/workspace`) uses Atlas directly; agent orchestration, research, pivot, and export use MCP. Both target the same Atlas database.
+**key routes**
 
-### Google ADK integration
-
-| Piece | Path |
-|-------|------|
-| ADK agent | `backend/agents/adk/planner_agent.py` |
-| Runtime path | `POST /api/agents/spawn` → `planner.plan()` → `run_planner_agent()` |
-
-Optional Cloud Run / Vertex deployment notes live in `cloud_run/` (disabled by default; requires GCP billing).
+| method | path | vibe |
+|--------|------|------|
+| `POST` | `/api/workspace` | create graph from idea |
+| `GET` | `/api/workspace/{id}` | full graph |
+| `POST` | `/api/orchestrator/chat` | talk to the orb |
+| `POST` | `/api/agents/spawn` | bulk research session |
+| `POST` | `/api/agents/spawn-research-agents` | custom nodes + parallel agents |
+| `GET` | `/api/feed` | sse stream |
+| `POST` | `/api/voice/stt` · `/tts` | voice proxy |
 
 ---
 
-## Key API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/workspace` | Create workspace from idea |
-| `GET` | `/api/workspace/{id}` | Full graph + nodes |
-| `POST` | `/api/orchestrator/chat` | Conversational orchestrator (tools + voice replies) |
-| `POST` | `/api/agents/spawn` | Bulk research session (Planner + researchers) |
-| `POST` | `/api/agents/spawn-research-agents` | Create custom research nodes + parallel agents |
-| `GET` | `/api/feed` | SSE live agent feed |
-| `POST` | `/api/voice/stt` | Speech-to-text (Deepgram proxy) |
-| `POST` | `/api/voice/tts` | Text-to-speech (Deepgram proxy) |
-
-See [docs/architecture.md](docs/architecture.md) and [docs/mongodb_schema.md](docs/mongodb_schema.md) for full API and schema detail.
-
----
-
-## Project Structure
+## folder map
 
 ```
 cofounder/
 ├── backend/
-│   ├── agents/          # Orchestrator, researcher, planner, dialogue, export
-│   ├── agents/adk/      # Google ADK Planner agent
-│   ├── mdb_mcp/         # MongoDB MCP client + agent GraphStore
-│   ├── api/             # FastAPI routes
-│   └── tools/           # Firecrawl, Reddit, Deepgram, GitHub, PostHog
-├── frontend/            # Vite + React + React Flow canvas
-├── docs/                # Architecture, schema, banner
-├── scripts/             # Atlas seeding and index setup
-└── cloud_run/           # Optional ADK Planner service (Cloud Run)
+│   ├── main.py          # fastapi entry, store bootstrap
+│   ├── api/             # routes (workspace, agents, feed, voice, export)
+│   ├── agents/          # orchestrator, researcher, planner, growth, etc
+│   ├── agents/adk/      # google adk planner
+│   ├── mdb_mcp/         # mcp client + agent graph store
+│   └── tools/           # firecrawl, scrapling, github, posthog, deepgram
+├── frontend/            # vite + react + react flow
+├── docs/                # architecture + schema
+├── scripts/             # atlas seed + indexes
+└── cloud_run/           # optional adk deploy (off by default)
 ```
 
 ---
 
-## License
+## prod deploy
 
-MIT — see [LICENSE](LICENSE).
+- **frontend** → vercel (`frontend/vercel.json`)
+- **backend** → render (`render.yaml`, python 3.11)
+- set `VITE_API_BASE_URL` on vercel to your render api url
+- set `CORS_ORIGINS` on render to your vercel domain
+
+---
+
+## license
+
+mit — [LICENSE](LICENSE)

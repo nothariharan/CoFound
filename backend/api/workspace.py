@@ -1,3 +1,5 @@
+"""workspace crud — create graph from idea, fetch state, decision journal"""
+
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
@@ -41,6 +43,7 @@ def _to_response(workspace: WorkspaceDocument) -> WorkspaceResponse:
 
 @router.post("/workspace", response_model=WorkspaceResponse)
 async def create_workspace(body: WorkspaceCreateRequest):
+    # idea framer names the workspace and seeds core node confidence before graph unlock
     idea_id = str(uuid4())
     framed = await frame_idea(body.idea)
     core_node = create_core_idea_node(body.idea)

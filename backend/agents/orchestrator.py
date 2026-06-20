@@ -31,10 +31,11 @@ async def spawn_research_session(
     agents_active: int = 2,
     run_inline: bool = False,
 ) -> OrchestratorResult:
-    """read workspace, create tasks if needed, and start researcher workers"""
+    """read graph → planner tasks → kick researchers → sse the whole way"""
 
     store = store or get_agent_store()
     session_id = str(uuid4())
+    # every step publishes to sse so the canvas feels alive
     await feed.publish(workspace_id, {"text": "[Orchestrator] Session started. Reading graph state...", "type": "info"})
     await feed.publish(workspace_id, {"text": "[MongoDB MCP] Reading workspace via find", "type": "info"})
     workspace = await store.get_workspace(workspace_id)
