@@ -26,7 +26,7 @@ CoFounder represents your startup as a **living knowledge graph**. A central orc
 
 ## Platform Requirements
 
-CoFounder is built on the required partner stack and uses each integration at runtime:
+CoFounder is built on a core platform stack and uses each integration at runtime:
 
 | Requirement | Implementation |
 |-------------|----------------|

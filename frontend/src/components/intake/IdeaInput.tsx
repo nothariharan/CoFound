@@ -106,7 +106,7 @@ export function IdeaInput() {
             </h1>
 
             <p className="intake-hero-sub mb-10 max-w-xl text-center text-base leading-relaxed">
-              Multiple specialized AI agents work in parallel — researching markets, validating
+              Specialized research agents work in parallel — researching markets, validating
               assumptions, building your product, and scaling growth — all from your single idea.
             </p>
 
