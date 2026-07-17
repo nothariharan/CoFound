@@ -9,7 +9,7 @@ import { AgentCursors } from '@/components/intake/AgentCursors'
 import { CoFoundLogo } from '@/components/intake/OrbitalDiagram'
 
 import { AgentWorkGallery } from '@/components/intake/AgentWorkGallery'
-import { ApiError, warmApi } from '@/lib/api'
+import { ApiError, apiFetch, warmApi } from '@/lib/api'
 
 const BRANDED_GRADIENT = {
   gradientColors: ['#c96442', '#8a4733', '#3a241a', '#161311', '#0c0c0b', '#0a0a09'],
@@ -29,6 +29,7 @@ export function IdeaInput() {
   const [sessionExpired, setSessionExpired] = useState(false)
   const [resumeHint, setResumeHint] = useState<string | null>(null)
   const [backendStatus, setBackendStatus] = useState<'checking' | 'ready' | 'unavailable'>('checking')
+  const [hasSavedWorkspace, setHasSavedWorkspace] = useState(() => Boolean(getSavedWorkspaceId()))
   const { createWorkspace, fetchWorkspace, loading, error } = useWorkspace()
   const containerRef = useIntakeAnimation()
   const formRef = useRef<HTMLFormElement>(null)
@@ -45,6 +46,30 @@ export function IdeaInput() {
       const ready = await warmApi(activeController.signal)
       if (cancelled) return
       setBackendStatus(ready ? 'ready' : 'unavailable')
+
+      // if we have a saved id, check it still exists so the CTA stays honest
+      const savedId = getSavedWorkspaceId()
+      if (ready && savedId) {
+        try {
+          await apiFetch(`/api/workspace/${savedId}`, {
+            signal: activeController.signal,
+            timeoutMs: 90_000,
+          })
+          if (!cancelled) setHasSavedWorkspace(true)
+        } catch (err) {
+          if (cancelled) return
+          const status = err instanceof ApiError ? err.status : undefined
+          if (status === 404) {
+            clearSavedWorkspaceId()
+            setHasSavedWorkspace(false)
+            setSessionExpired(true)
+          }
+          // network / cold start — keep the local flag, resume can retry on click
+        }
+      } else if (!savedId) {
+        setHasSavedWorkspace(false)
+      }
+
       // keep nudging a sleeping free-tier box until it answers
       if (!ready) {
         retryTimer = window.setTimeout(() => {
@@ -77,31 +102,40 @@ export function IdeaInput() {
     }
   }
 
-  const handleGetStarted = async () => {
+  const openSavedWorkspace = async () => {
     const savedId = getSavedWorkspaceId()
-    if (savedId) {
-      setResuming(true)
-      setSessionExpired(false)
-      setResumeHint(null)
-      try {
-        await fetchWorkspace(savedId)
-        return
-      } catch (err) {
-        const status = err instanceof ApiError ? err.status : undefined
-        if (status === 404) {
-          clearSavedWorkspaceId()
-          setSessionExpired(true)
-        } else {
-          setResumeHint(
-            status === 503 || status === 502 || status === 504
-              ? 'The workspace service is waking up. Tap Get started again in a moment.'
-              : 'Could not reopen your workspace yet. Check your connection and try again.',
-          )
-          void warmApi().then((ready) => setBackendStatus(ready ? 'ready' : 'unavailable'))
-        }
-      } finally {
-        setResuming(false)
+    if (!savedId) {
+      setHasSavedWorkspace(false)
+      return
+    }
+
+    setResuming(true)
+    setSessionExpired(false)
+    setResumeHint(null)
+    try {
+      await fetchWorkspace(savedId)
+    } catch (err) {
+      const status = err instanceof ApiError ? err.status : undefined
+      if (status === 404) {
+        clearSavedWorkspaceId()
+        setHasSavedWorkspace(false)
+        setSessionExpired(true)
+      } else {
+        setResumeHint(
+          status === 503 || status === 502 || status === 504
+            ? 'The workspace service is waking up. Tap Open workspace again in a moment.'
+            : 'Could not reopen your workspace yet. Check your connection and try again.',
+        )
+        void warmApi().then((ready) => setBackendStatus(ready ? 'ready' : 'unavailable'))
       }
+    } finally {
+      setResuming(false)
+    }
+  }
+
+  const handleGetStarted = async () => {
+    if (hasSavedWorkspace || getSavedWorkspaceId()) {
+      await openSavedWorkspace()
       return
     }
 
@@ -118,6 +152,13 @@ export function IdeaInput() {
   }
 
   const busy = loading || framing || resuming
+  const ctaLabel = resuming
+    ? 'Opening…'
+    : framing
+      ? 'Starting…'
+      : hasSavedWorkspace
+        ? 'Open workspace'
+        : 'Get started'
 
   return (
     <AppCursorProvider>
@@ -146,7 +187,7 @@ export function IdeaInput() {
             {(resuming || (framing && !idea.trim())) && (
               <span className="size-3.5 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
             )}
-            {resuming ? 'Opening…' : framing ? 'Starting…' : 'Get started'}
+            {ctaLabel}
           </Button>
         </div>
       </header>
@@ -260,6 +301,19 @@ export function IdeaInput() {
                 </Button>
               </div>
               {error && <p className="mt-3 text-center text-sm text-destructive">{error}</p>}
+              {hasSavedWorkspace && !resuming && !framing && (
+                <p className="mt-3 text-center text-xs text-muted-foreground">
+                  Already building?{' '}
+                  <button
+                    type="button"
+                    onClick={() => void openSavedWorkspace()}
+                    disabled={busy}
+                    className="font-medium text-primary underline-offset-2 hover:underline disabled:opacity-60"
+                  >
+                    Open your last workspace
+                  </button>
+                </p>
+              )}
             </form>
           </div>
         </div>

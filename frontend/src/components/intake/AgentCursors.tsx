@@ -1,79 +1,91 @@
 import { useEffect, useRef, type RefObject } from 'react'
-import { gsap, useGSAP } from '@/lib/gsap'
-import { createMotionMatchMedia, motionDuration } from '@/lib/gsap'
+import { gsap } from '@/lib/gsap'
 import { CursorLabel, CursorPointerIcon } from '@/components/cursor/CursorLabel'
 
 // tip of the pointer svg sits upper-left — offset so it aims along travel
 const POINTER_ANGLE_OFFSET = 135
+const FLEE_RADIUS = 100
+// just a little sideways when your cursor gets close
+const NUDGE_PX = 20
 
 type AgentSpec = {
   id: string
   label: string
   color: string
-  // starting spot in % of the landing page
-  x: number
-  y: number
-  // how often this agent picks a new wander target (ms) — staggered so they don't sync
-  wanderEvery: [number, number]
-  // how far they'll roam in one hop
-  roam: number
+  // park in the side gutters (like the circled spots) — never under the bar
+  side: 'left' | 'right'
+  // 0 = at search-bar height, 1 = up near the headline
+  rise: number
+  // how far into the side margin (0 = closer to content, 1 = nearer the screen edge)
+  gutter: number
+  driftX: number
+  driftY: number
 }
 
 const AGENTS: AgentSpec[] = [
+  // left gutter — top → mid → bar height
   {
     id: 'orchestrator',
     label: 'Orchestrator',
     color: '#c96442',
-    x: 12,
-    y: 22,
-    wanderEvery: [4200, 7200],
-    roam: 18,
+    side: 'left',
+    rise: 0.92,
+    gutter: 0.55,
+    driftX: 8,
+    driftY: 5,
   },
   {
     id: 'researcher',
     label: 'Researcher',
     color: '#4a8eff',
-    x: 10,
-    y: 58,
-    wanderEvery: [5100, 8600],
-    roam: 16,
-  },
-  {
-    id: 'builder',
-    label: 'Builder',
-    color: '#6366f1',
-    x: 82,
-    y: 28,
-    wanderEvery: [4800, 7800],
-    roam: 17,
-  },
-  {
-    id: 'growth',
-    label: 'Growth',
-    color: '#22c55e',
-    x: 78,
-    y: 62,
-    wanderEvery: [5600, 9200],
-    roam: 15,
+    side: 'left',
+    rise: 0.55,
+    gutter: 0.7,
+    driftX: 10,
+    driftY: 4,
   },
   {
     id: 'validator',
     label: 'Validator',
     color: '#5fb87a',
-    x: 48,
-    y: 78,
-    wanderEvery: [6000, 9800],
-    roam: 14,
+    side: 'left',
+    rise: 0.12,
+    gutter: 0.5,
+    driftX: 8,
+    driftY: -3,
+  },
+  // right gutter — top → mid → bar height
+  {
+    id: 'builder',
+    label: 'Builder',
+    color: '#6366f1',
+    side: 'right',
+    rise: 0.88,
+    gutter: 0.55,
+    driftX: -8,
+    driftY: 5,
+  },
+  {
+    id: 'growth',
+    label: 'Growth',
+    color: '#22c55e',
+    side: 'right',
+    rise: 0.5,
+    gutter: 0.7,
+    driftX: -10,
+    driftY: 4,
+  },
+  {
+    id: 'market',
+    label: 'Market',
+    color: '#d9a441',
+    side: 'right',
+    rise: 0.1,
+    gutter: 0.5,
+    driftX: -8,
+    driftY: -3,
   },
 ]
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n))
-}
-
-function rand(min: number, max: number) {
-  return min + Math.random() * (max - min)
-}
 
 function AgentCursor({
   label,
@@ -85,14 +97,13 @@ function AgentCursor({
   agentId: string
 }) {
   return (
-    <div
-      className="agent-cursor absolute left-0 top-0 will-change-transform"
-      data-agent={agentId}
-      style={{ transform: 'translate3d(0,0,0)' }}
-    >
-      <div className="agent-cursor-inner relative origin-top-left">
-        <CursorPointerIcon color={color} size={24} />
-        <div className="absolute left-5 top-5">
+    <div className="agent-cursor absolute left-0 top-0" data-agent={agentId}>
+      <div className="agent-cursor-inner relative">
+        {/* only the arrow rotates to aim — label stays horizontal so you can read it */}
+        <div className="agent-cursor-pointer origin-top-left">
+          <CursorPointerIcon color={color} size={24} />
+        </div>
+        <div className="agent-cursor-label absolute left-5 top-5">
           <CursorLabel label={label} color={color} />
         </div>
       </div>
@@ -101,15 +112,16 @@ function AgentCursor({
 }
 
 type AgentCursorsProps = {
-  /** optional work target — agents sometimes drift toward the idea input */
   targetRef?: RefObject<HTMLElement | null>
 }
+
+// bumping this kills leftover rAF loops from hmr / strict mode
+let animEpoch = 0
 
 export function AgentCursors({ targetRef }: AgentCursorsProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mouseRef = useRef({ x: -9999, y: -9999, active: false })
 
-  // track real mouse so agents can dodge when you get close
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY, active: true }
@@ -125,195 +137,159 @@ export function AgentCursors({ targetRef }: AgentCursorsProps) {
     }
   }, [])
 
-  useGSAP(
-    () => {
-      const mm = createMotionMatchMedia()
-      mm.add(({ reduceMotion }) => {
-        const layer = containerRef.current
-        if (!layer) return
+  useEffect(() => {
+    const layer = containerRef.current
+    if (!layer) return
 
-        const cursors = gsap.utils.toArray<HTMLElement>('.agent-cursor', layer)
-        const cleanups: Array<() => void> = []
+    const epoch = ++animEpoch
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    let raf = 0
+    let resizeTimer = 0
 
-        // fade in staggered — not all popping at once
-        gsap.from(cursors, {
-          autoAlpha: 0,
-          scale: reduceMotion ? 1 : 0.88,
-          duration: motionDuration(reduceMotion, 0.65, 0.01),
-          stagger: 0.18,
-          ease: 'back.out(1.3)',
-          delay: 0.55,
+    type Rt = {
+      el: HTMLElement
+      inner: HTMLElement
+      pointer: HTMLElement
+      agent: AgentSpec
+      homeX: number
+      homeY: number
+      nudgeX: number
+      baseAngle: number
+      driftPhase: number
+      bobPhase: number
+    }
+
+    const runtimes: Rt[] = []
+
+    const layoutHomes = () => {
+      const layerRect = layer.getBoundingClientRect()
+      const targetRect = targetRef?.current?.getBoundingClientRect()
+      if (!targetRect || targetRect.width < 40) return
+
+      const formLeft = targetRect.left - layerRect.left
+      const formRight = targetRect.right - layerRect.left
+      const formCy = targetRect.top - layerRect.top + targetRect.height / 2
+      // top of the “around” band — just under the nav / near the headline
+      const bandTop = Math.max(72, formCy - 260)
+      // never park below the search bar
+      const bandBottom = formCy - 4
+
+      for (const rt of runtimes) {
+        const gutterW = Math.max(48, formLeft - 16)
+        const xLeft = 14 + rt.agent.gutter * Math.max(0, gutterW - 40)
+        const xRight = formRight + 16 + (1 - rt.agent.gutter) * Math.max(0, layerRect.width - formRight - 130)
+
+        rt.homeX =
+          rt.agent.side === 'left'
+            ? Math.max(10, Math.min(formLeft - 24, xLeft))
+            : Math.max(formRight + 12, Math.min(layerRect.width - 120, xRight))
+
+        rt.homeY = bandBottom - rt.agent.rise * (bandBottom - bandTop)
+        rt.homeY = Math.max(bandTop, Math.min(bandBottom, rt.homeY))
+
+        // aim at the search bar
+        const aimX = formLeft + targetRect.width / 2 - rt.homeX
+        const aimY = formCy - rt.homeY
+        rt.baseAngle = (Math.atan2(aimY, aimX) * 180) / Math.PI + POINTER_ANGLE_OFFSET
+      }
+    }
+
+    const onResize = () => {
+      window.clearTimeout(resizeTimer)
+      resizeTimer = window.setTimeout(layoutHomes, 80)
+    }
+
+    const tick = (now: number) => {
+      if (epoch !== animEpoch) return
+
+      const mouse = mouseRef.current
+      const layerRect = layer.getBoundingClientRect()
+      const t = now / 1000
+
+      for (const rt of runtimes) {
+        const homeTipX = layerRect.left + rt.homeX
+        const homeTipY = layerRect.top + rt.homeY
+        const near =
+          mouse.active &&
+          Math.hypot(homeTipX - mouse.x, homeTipY - mouse.y) < FLEE_RADIUS
+
+        // sideways only — ease back when you leave
+        const targetNudge = near ? (mouse.x < homeTipX ? NUDGE_PX : -NUDGE_PX) : 0
+        rt.nudgeX += (targetNudge - rt.nudgeX) * 0.35
+
+        const driftX = reduceMotion ? 0 : Math.sin(t * 0.7 + rt.driftPhase) * rt.agent.driftX
+        const driftY = reduceMotion ? 0 : Math.cos(t * 0.55 + rt.driftPhase) * rt.agent.driftY
+        const bob = reduceMotion ? 1 : 1 + Math.sin(t * 1.4 + rt.bobPhase) * 0.03
+        const wobble = reduceMotion ? 0 : Math.sin(t * 0.9 + rt.bobPhase) * 6
+
+        const x = rt.homeX + driftX + rt.nudgeX
+        const y = rt.homeY + driftY
+        const angle = rt.baseAngle + wobble
+
+        rt.el.style.transform = `translate3d(${x}px, ${y}px, 0)`
+        rt.inner.style.transform = `scale(${bob})`
+        // pointer aims at the bar; label stays upright
+        rt.pointer.style.transform = `rotate(${angle}deg)`
+      }
+
+      raf = window.requestAnimationFrame(tick)
+    }
+
+    const boot = () => {
+      if (epoch !== animEpoch) return
+      if (layer.clientWidth < 40 || layer.clientHeight < 40 || !targetRef?.current) {
+        raf = window.requestAnimationFrame(boot)
+        return
+      }
+
+      const nodes = Array.from(layer.querySelectorAll<HTMLElement>('.agent-cursor'))
+      nodes.forEach((el, i) => {
+        const agent = AGENTS[i]
+        const inner = el.querySelector<HTMLElement>('.agent-cursor-inner')
+        const pointer = el.querySelector<HTMLElement>('.agent-cursor-pointer')
+        if (!agent || !inner || !pointer) return
+
+        gsap.killTweensOf(inner)
+        el.style.left = '0px'
+        el.style.top = '0px'
+
+        runtimes.push({
+          el,
+          inner,
+          pointer,
+          agent,
+          homeX: 0,
+          homeY: 0,
+          nudgeX: 0,
+          baseAngle: POINTER_ANGLE_OFFSET,
+          driftPhase: i * 1.1,
+          bobPhase: i * 0.7,
         })
 
-        if (reduceMotion) {
-          // park them at start spots and bail
-          cursors.forEach((el, i) => {
-            const agent = AGENTS[i]
-            if (!agent) return
-            const w = layer.clientWidth
-            const h = layer.clientHeight
-            gsap.set(el, { x: (agent.x / 100) * w, y: (agent.y / 100) * h })
-          })
-          return
-        }
-
-        cursors.forEach((el, i) => {
-          const agent = AGENTS[i]
-          if (!agent) return
-          const inner = el.querySelector<HTMLElement>('.agent-cursor-inner')
-          if (!inner) return
-
-          let x = (agent.x / 100) * layer.clientWidth
-          let y = (agent.y / 100) * layer.clientHeight
-          gsap.set(el, { x, y })
-          gsap.set(inner, { rotation: POINTER_ANGLE_OFFSET + rand(-12, 12) })
-
-          let fleeTween: gsap.core.Tween | null = null
-          let wanderTween: gsap.core.Tween | null = null
-          let nextWanderAt = performance.now() + rand(...agent.wanderEvery)
-          let busyUntil = 0
-
-          const bounds = () => {
-            const w = layer.clientWidth
-            const h = layer.clientHeight
-            // keep labels on-screen with a soft margin
-            return {
-              minX: w * 0.04,
-              maxX: w * 0.88,
-              minY: h * 0.1,
-              maxY: h * 0.86,
-              w,
-              h,
-            }
-          }
-
-          const moveTo = (nx: number, ny: number, duration: number, ease = 'power2.inOut') => {
-            const b = bounds()
-            const tx = clamp(nx, b.minX, b.maxX)
-            const ty = clamp(ny, b.minY, b.maxY)
-            const dx = tx - x
-            const dy = ty - y
-            const angle = (Math.atan2(dy, dx) * 180) / Math.PI + POINTER_ANGLE_OFFSET
-
-            gsap.to(inner, {
-              rotation: angle,
-              duration: Math.min(0.55, duration * 0.35),
-              ease: 'sine.out',
-              overwrite: 'auto',
-            })
-
-            wanderTween?.kill()
-            wanderTween = gsap.to(el, {
-              x: tx,
-              y: ty,
-              duration,
-              ease,
-              overwrite: 'auto',
-              onUpdate: () => {
-                x = Number(gsap.getProperty(el, 'x'))
-                y = Number(gsap.getProperty(el, 'y'))
-              },
-              onComplete: () => {
-                x = tx
-                y = ty
-              },
-            })
-          }
-
-          const pickWander = () => {
-            if (performance.now() < busyUntil) return
-            const b = bounds()
-            // ~1 in 4 hops drift toward the idea input so it feels like work
-            const targetEl = targetRef?.current
-            let nx = x + rand(-agent.roam, agent.roam) * (b.w / 100)
-            let ny = y + rand(-agent.roam, agent.roam) * (b.h / 100)
-
-            if (targetEl && Math.random() < 0.28) {
-              const rect = targetEl.getBoundingClientRect()
-              const layerRect = layer.getBoundingClientRect()
-              nx = rect.left - layerRect.left + rand(20, Math.max(40, rect.width - 40))
-              ny = rect.top - layerRect.top + rand(-36, 28)
-            }
-
-            moveTo(nx, ny, rand(1.6, 2.8))
-            nextWanderAt = performance.now() + rand(...agent.wanderEvery)
-          }
-
-          // kick off first roam at staggered times so nothing syncs
-          const startDelay = window.setTimeout(
-            () => {
-              pickWander()
-            },
-            700 + i * 420 + rand(0, 400),
-          )
-
-          const tick = () => {
-            const now = performance.now()
-            const mouse = mouseRef.current
-            const layerRect = layer.getBoundingClientRect()
-            const cx = layerRect.left + x
-            const cy = layerRect.top + y
-
-            // dodge the real cursor when it gets close
-            if (mouse.active) {
-              const dx = cx - mouse.x
-              const dy = cy - mouse.y
-              const dist = Math.hypot(dx, dy)
-              const fleeRadius = 120
-              if (dist < fleeRadius && dist > 0.1) {
-                const push = (fleeRadius - dist) / fleeRadius
-                const nx = x + (dx / dist) * (40 + push * 90) + rand(-10, 10)
-                const ny = y + (dy / dist) * (40 + push * 90) + rand(-10, 10)
-                busyUntil = now + 900
-                fleeTween?.kill()
-                fleeTween = gsap.to(el, {
-                  x: clamp(nx, bounds().minX, bounds().maxX),
-                  y: clamp(ny, bounds().minY, bounds().maxY),
-                  duration: 0.45 + push * 0.25,
-                  ease: 'power3.out',
-                  overwrite: 'auto',
-                  onUpdate: () => {
-                    x = Number(gsap.getProperty(el, 'x'))
-                    y = Number(gsap.getProperty(el, 'y'))
-                  },
-                })
-                const angle = (Math.atan2(ny - y, nx - x) * 180) / Math.PI + POINTER_ANGLE_OFFSET
-                gsap.to(inner, { rotation: angle, duration: 0.25, overwrite: 'auto' })
-                nextWanderAt = now + rand(900, 1600)
-              }
-            }
-
-            if (now >= nextWanderAt) pickWander()
-          }
-
-          gsap.ticker.add(tick)
-          cleanups.push(() => {
-            window.clearTimeout(startDelay)
-            gsap.ticker.remove(tick)
-            fleeTween?.kill()
-            wanderTween?.kill()
-          })
-
-          // tiny idle bob so they feel alive between hops
-          gsap.to(inner, {
-            scale: 1.04,
-            duration: 1.7 + i * 0.22,
-            repeat: -1,
-            yoyo: true,
-            ease: 'sine.inOut',
-            delay: i * 0.35,
-          })
+        inner.style.opacity = '0'
+        gsap.to(inner, {
+          opacity: 1,
+          duration: reduceMotion ? 0.01 : 0.6,
+          delay: 0.3 + i * 0.1,
+          ease: 'power2.out',
         })
+      })
 
-        return () => {
-          cleanups.forEach((fn) => fn())
-        }
-      }, containerRef.current)
+      layoutHomes()
+      window.addEventListener('resize', onResize)
+      raf = window.requestAnimationFrame(tick)
+    }
 
-      return () => mm.revert()
-    },
-    { scope: containerRef, dependencies: [targetRef] },
-  )
+    raf = window.requestAnimationFrame(boot)
+
+    return () => {
+      animEpoch += 1
+      window.cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+      window.clearTimeout(resizeTimer)
+      runtimes.forEach((rt) => gsap.killTweensOf(rt.inner))
+    }
+  }, [targetRef])
 
   return (
     <div
@@ -322,7 +298,12 @@ export function AgentCursors({ targetRef }: AgentCursorsProps) {
       aria-hidden
     >
       {AGENTS.map((agent) => (
-        <AgentCursor key={agent.id} agentId={agent.id} label={agent.label} color={agent.color} />
+        <AgentCursor
+          key={agent.id}
+          agentId={agent.id}
+          label={agent.label}
+          color={agent.color}
+        />
       ))}
     </div>
   )

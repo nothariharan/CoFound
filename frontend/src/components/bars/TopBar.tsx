@@ -5,6 +5,15 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+function workspaceInitials(name?: string | null) {
+  if (!name?.trim()) return 'CF'
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase()
+  }
+  return name.trim().slice(0, 2).toUpperCase()
+}
+
 export function TopBar() {
   const goHome = useGoHome()
   const { workspace, healthScore, setOnboardingOpen } = useWorkspaceStore()
@@ -14,6 +23,8 @@ export function TopBar() {
 
   const healthColor =
     score >= 70 ? 'bg-status-validated' : score >= 50 ? 'bg-status-needs-work' : 'bg-status-blocking'
+
+  const initials = workspaceInitials(workspace?.workspace_name)
 
   return (
     <header className="shell-panel flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-4">
@@ -55,7 +66,9 @@ export function TopBar() {
             <Clock className="size-4" />
           </Button>
           <Avatar className="size-7">
-            <AvatarFallback className="bg-surface-elevated text-[10px] text-foreground">AK</AvatarFallback>
+            <AvatarFallback className="bg-surface-elevated text-[10px] text-foreground">
+              {initials}
+            </AvatarFallback>
           </Avatar>
         </div>
       </div>
