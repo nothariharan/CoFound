@@ -1,4 +1,4 @@
-const PRODUCTION_API = 'https://cofounder-api.onrender.com'
+const PRODUCTION_API = 'https://cofound-tshh.onrender.com'
 const configuredBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim()
 const API_BASE = (configuredBase || (import.meta.env.PROD ? PRODUCTION_API : '')).replace(/\/$/, '')
 

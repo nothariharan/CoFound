@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cofounder-api
+    name: CoFound
     runtime: python
     rootDir: backend
     buildCommand: chmod +x build.sh start.sh && ./build.sh
