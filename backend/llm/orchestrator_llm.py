@@ -1,4 +1,4 @@
-"""orchestrator llm router — optional remote provider when credentials are present, else gemini"""
+"""orchestrator llm router — gemini first, aws bedrock nova as fallback"""
 from __future__ import annotations
 
 from typing import Any
@@ -22,6 +22,15 @@ async def generate_with_tools(
     tools: list[dict[str, Any]],
     system: str = "",
 ) -> GeminiToolResult:
+    # gemini first when keyed; aws fills in on miss / failure
+    try:
+        from llm.gemini import _api_key
+
+        if _api_key():
+            return await gemini_generate_with_tools(contents, tools, system=system)
+    except GeminiError:
+        pass
+
     if remote_enabled():
         try:
             remote = await _converse.generate_with_tools(contents, tools, system=system)
@@ -33,6 +42,7 @@ async def generate_with_tools(
             )
         except _converse.ConverseError:
             pass
+
     try:
         return await gemini_generate_with_tools(contents, tools, system=system)
     except GeminiError:
@@ -42,11 +52,5 @@ async def generate_with_tools(
 
 
 async def generate_text_resilient(prompt: str, system: str = "") -> str:
-    if remote_enabled():
-        try:
-            text = await _converse.generate_text(prompt, system=system)
-            if text.strip():
-                return text
-        except _converse.ConverseError:
-            pass
+    # generate_pro_resilient already tries gemini → aws
     return await generate_pro_resilient(prompt, system=system)

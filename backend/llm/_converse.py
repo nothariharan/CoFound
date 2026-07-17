@@ -1,9 +1,11 @@
-"""remote orchestrator llm via converse api (credentials from env only)"""
+"""remote llm via bedrock converse api (credentials from env only)
+
+used as fallback when gemini is missing or failing — scaffolding + reasoning
+"""
 
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import re
 import uuid
@@ -11,7 +13,10 @@ from typing import Any
 
 from llm.types import LLMToolResult, ToolCall
 
-DEFAULT_MODEL = "amazon.nova-lite-v1:0"
+DEFAULT_MODEL = "amazon.nova-pro-v1:0"
+# scaffolding / handoff docs need room; tool calls stay tighter
+DEFAULT_TEXT_MAX_TOKENS = 4096
+DEFAULT_TOOL_MAX_TOKENS = 2048
 
 
 class ConverseError(RuntimeError):
@@ -126,7 +131,7 @@ def _converse_sync(contents: list[dict[str, Any]], tools: list[dict[str, Any]], 
     kwargs: dict[str, Any] = {
         "modelId": _model_id(),
         "messages": messages,
-        "inferenceConfig": {"maxTokens": 1024, "temperature": 0.3},
+        "inferenceConfig": {"maxTokens": DEFAULT_TOOL_MAX_TOKENS, "temperature": 0.3},
     }
     if system:
         kwargs["system"] = [{"text": system}]
@@ -140,11 +145,11 @@ def _converse_sync(contents: list[dict[str, Any]], tools: list[dict[str, Any]], 
     return _parse_output(data)
 
 
-def _text_sync(prompt: str, system: str) -> str:
+def _text_sync(prompt: str, system: str, max_tokens: int = DEFAULT_TEXT_MAX_TOKENS) -> str:
     kwargs: dict[str, Any] = {
         "modelId": _model_id(),
         "messages": [{"role": "user", "content": [{"text": prompt}]}],
-        "inferenceConfig": {"maxTokens": 768, "temperature": 0.3},
+        "inferenceConfig": {"maxTokens": max_tokens, "temperature": 0.3},
     }
     if system:
         kwargs["system"] = [{"text": system}]
@@ -166,7 +171,7 @@ async def generate_with_tools(
     return await asyncio.to_thread(_converse_sync, contents, tools, system)
 
 
-async def generate_text(prompt: str, system: str = "") -> str:
+async def generate_text(prompt: str, system: str = "", *, max_tokens: int = DEFAULT_TEXT_MAX_TOKENS) -> str:
     if not is_configured():
         raise ConverseError("Remote orchestrator credentials are not configured")
-    return await asyncio.to_thread(_text_sync, prompt, system)
+    return await asyncio.to_thread(_text_sync, prompt, system, max_tokens)

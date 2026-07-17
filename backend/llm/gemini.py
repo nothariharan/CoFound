@@ -1,8 +1,8 @@
 """gemini pro/flash router
 
 uses the public gemini rest api via the standard library so the backend does not
-need a heavyweight sdk. if google_api_key is absent, callers get a minimal
-fallback response so the ui can fail gracefully without fabricated research
+need a heavyweight sdk. if google_api_key is absent or gemini fails, falls back to
+aws bedrock (nova) when AWS_* credentials are set — used for scaffolding + reasoning
 """
 
 from __future__ import annotations
@@ -34,13 +34,13 @@ def _model(kind: str) -> str:
 
 
 async def generate_pro(prompt: str, system: str = "") -> str:
-    """generate with gemini pro for synthesis heavy agent work"""
+    """generate with gemini pro for synthesis heavy agent work (aws fallback)"""
 
     return await _generate(prompt=prompt, system=system, model=_model("pro"), temperature=0.35)
 
 
 async def generate_flash(prompt: str, system: str = "") -> str:
-    """generate with gemini flash for high volume research/scoring work"""
+    """generate with gemini flash for high volume research/scoring work (aws fallback)"""
 
     return await _generate(prompt=prompt, system=system, model=_model("flash"), temperature=0.25)
 
@@ -66,10 +66,13 @@ async def generate_with_tools(
     model_kind: str = "pro",
     temperature: float = 0.35,
 ) -> GeminiToolResult:
-    """generate with optional function calling"""
+    """generate with optional function calling — prefers aws when gemini is unavailable"""
 
     key = _api_key()
     if not key:
+        aws_result = await _try_aws_tools(contents, tools, system)
+        if aws_result is not None:
+            return aws_result
         return _mock_tool_result(contents, tools)
 
     model = _model(model_kind)
@@ -97,6 +100,9 @@ async def generate_with_tools(
                 )
             except GeminiError:
                 pass
+        aws_result = await _try_aws_tools(contents, tools, system)
+        if aws_result is not None:
+            return aws_result
         return _mock_tool_result(contents, tools)
 
 
@@ -110,7 +116,6 @@ async def generate_pro_resilient(prompt: str, system: str = "") -> str:
 
     key = _api_key()
     if not key:
-        # no Gemini key at all — go straight to AWS if available
         aws_result = await _try_aws(prompt, system)
         if aws_result is not None:
             return aws_result
@@ -122,15 +127,17 @@ async def generate_pro_resilient(prompt: str, system: str = "") -> str:
             try:
                 return await _generate(prompt=prompt, system=system, model=_model("flash"), temperature=0.25)
             except GeminiError:
-                aws_result = await _try_aws(prompt, system)
-                if aws_result is not None:
-                    return aws_result
-                return json.dumps(
-                    {
-                        "reply": "Done. Check the activity feed for live agent updates.",
-                        "speaking_text": "Done. Watch the activity feed for updates.",
-                    }
-                )
+                pass
+        aws_result = await _try_aws(prompt, system)
+        if aws_result is not None:
+            return aws_result
+        if _is_rate_limit_error(exc):
+            return json.dumps(
+                {
+                    "reply": "Done. Check the activity feed for live agent updates.",
+                    "speaking_text": "Done. Watch the activity feed for updates.",
+                }
+            )
         raise
 
 
@@ -147,11 +154,41 @@ async def _try_aws(prompt: str, system: str) -> str | None:
         return None
 
 
+async def _try_aws_tools(
+    contents: list[dict[str, Any]],
+    tools: list[dict[str, Any]],
+    system: str,
+) -> GeminiToolResult | None:
+    try:
+        from llm._converse import generate_with_tools as _aws_tools, is_configured as _aws_ok
+
+        if not _aws_ok():
+            return None
+        remote = await _aws_tools(contents, tools, system=system)
+        return GeminiToolResult(
+            text=remote.text,
+            tool_calls=[
+                GeminiToolCall(name=call.name, args=call.args, id=call.id) for call in remote.tool_calls
+            ],
+        )
+    except Exception:
+        return None
+
+
 async def _generate(prompt: str, system: str, model: str, temperature: float) -> str:
     key = _api_key()
     if not key:
+        aws_result = await _try_aws(prompt, system)
+        if aws_result is not None:
+            return aws_result
         return _mock_response(prompt, system, model)
-    return await asyncio.to_thread(_generate_sync, prompt, system, model, key, temperature)
+    try:
+        return await asyncio.to_thread(_generate_sync, prompt, system, model, key, temperature)
+    except GeminiError:
+        aws_result = await _try_aws(prompt, system)
+        if aws_result is not None:
+            return aws_result
+        raise
 
 
 def _generate_sync(prompt: str, system: str, model: str, key: str, temperature: float) -> str:
@@ -286,7 +323,7 @@ def _mock_tool_result(contents: list[dict[str, Any]], tools: list[dict[str, Any]
             tool_calls=[GeminiToolCall(name="get_workspace_summary", args={})],
         )
     return GeminiToolResult(
-        text="Gemini is not configured. Add GOOGLE_API_KEY for live orchestrator intelligence.",
+        text="No LLM configured. Add GOOGLE_API_KEY or AWS Bedrock credentials for live orchestrator intelligence.",
         tool_calls=[],
     )
 
@@ -311,5 +348,5 @@ def _mock_response(prompt: str, system: str, model: str) -> str:
     if "nodes_affected" in lowered:
         return json.dumps({"nodes_affected": ["audience", "competitors", "revenue"], "nodes_unchanged": ["core_idea", "tech_stack", "market_intelligence"], "requery_needed": True, "spawn_researcher": True})
     if "one targeted question" in lowered:
-        return "Gemini is not configured yet. Add GOOGLE_API_KEY to generate a targeted follow-up question from the live graph."
-    return "Gemini is not configured yet. Add GOOGLE_API_KEY for live agent reasoning."
+        return "No LLM configured yet. Add GOOGLE_API_KEY or AWS Bedrock credentials to generate a targeted follow-up question."
+    return "No LLM configured yet. Add GOOGLE_API_KEY or AWS Bedrock credentials for live agent reasoning."

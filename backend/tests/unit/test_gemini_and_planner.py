@@ -9,6 +9,8 @@ from llm.gemini import generate_flash, generate_pro
 
 def test_gemini_mock_returns_planner_json_without_api_key(monkeypatch):
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("AWS_ACCESS_KEY_ID", raising=False)
+    monkeypatch.delenv("AWS_SECRET_ACCESS_KEY", raising=False)
 
     text = asyncio.run(generate_pro("Return JSON tasks", system="tasks json"))
     payload = json.loads(text)
@@ -20,6 +22,8 @@ def test_gemini_mock_returns_planner_json_without_api_key(monkeypatch):
 
 def test_gemini_mock_returns_critique_json_without_api_key(monkeypatch):
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("AWS_ACCESS_KEY_ID", raising=False)
+    monkeypatch.delenv("AWS_SECRET_ACCESS_KEY", raising=False)
 
     text = asyncio.run(generate_flash("Please critique and score this result", system="critique score"))
     payload = json.loads(text)
