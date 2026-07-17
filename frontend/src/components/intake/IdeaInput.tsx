@@ -34,9 +34,31 @@ export function IdeaInput() {
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
-    const controller = new AbortController()
-    void warmApi(controller.signal).then((ready) => setBackendStatus(ready ? 'ready' : 'unavailable'))
-    return () => controller.abort()
+    let cancelled = false
+    let activeController: AbortController | null = null
+    let retryTimer: number | undefined
+
+    const run = async () => {
+      if (cancelled) return
+      setBackendStatus((prev) => (prev === 'ready' ? prev : 'checking'))
+      activeController = new AbortController()
+      const ready = await warmApi(activeController.signal)
+      if (cancelled) return
+      setBackendStatus(ready ? 'ready' : 'unavailable')
+      // keep nudging a sleeping free-tier box until it answers
+      if (!ready) {
+        retryTimer = window.setTimeout(() => {
+          void run()
+        }, 12_000)
+      }
+    }
+
+    void run()
+    return () => {
+      cancelled = true
+      activeController?.abort()
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer)
+    }
   }, [])
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -171,13 +193,13 @@ export function IdeaInput() {
             {!framing && !resuming && backendStatus === 'checking' && (
               <p className="mb-3 flex items-center gap-2 text-xs text-muted-foreground" role="status">
                 <span className="size-3 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
-                Waking up the workspace service…
+                Connecting to agents…
               </p>
             )}
 
             {!framing && !resuming && backendStatus === 'unavailable' && (
-              <p className="mb-3 text-xs text-amber-300">
-                The service is taking longer than usual. You can still continue and retry.
+              <p className="mb-3 text-center text-xs text-amber-200/90" role="status">
+                Agents are still waking up — you can type your idea now. Continue will retry automatically.
               </p>
             )}
 
@@ -242,7 +264,7 @@ export function IdeaInput() {
           </div>
         </div>
 
-        <AgentWorkGallery className="mt-8 w-full max-w-none pb-6 md:mt-12" />
+        <AgentWorkGallery className="mt-10 w-full pb-10 md:mt-14" />
       </main>
     </div>
     </AppCursorProvider>

@@ -36,8 +36,11 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
     return response
   } catch (error) {
     if (error instanceof ApiError) throw error
+    if (signal?.aborted) {
+      throw new ApiError('Request cancelled.', 499)
+    }
     if (controller.signal.aborted) {
-      throw new ApiError('The server took too long to respond. Please try again.')
+      throw new ApiError('The server took too long to respond. Please try again.', 408)
     }
     throw new ApiError('Unable to connect to the server. Please try again in a moment.')
   } finally {
@@ -46,13 +49,42 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}): Pro
   }
 }
 
+/** wake the free-tier api — retries through cold starts without treating remount aborts as downtime */
 export async function warmApi(signal?: AbortSignal): Promise<boolean> {
-  try {
-    await apiFetch('/health', { signal, timeoutMs: 45_000 })
-    return true
-  } catch {
-    return false
+  const attempts = 4
+  for (let i = 0; i < attempts; i++) {
+    if (signal?.aborted) return false
+    try {
+      await apiFetch('/health', { signal, timeoutMs: 90_000 })
+      return true
+    } catch (error) {
+      if (signal?.aborted) return false
+      const status = error instanceof ApiError ? error.status : undefined
+      // cancelled by unmount / strict mode — not a real outage
+      if (status === 499) return false
+      // wait then retry; free render cold starts often need a second hit
+      await sleep(2_500 + i * 2_000, signal)
+    }
   }
+  return false
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve()
+      return
+    }
+    const timer = window.setTimeout(resolve, ms)
+    signal?.addEventListener(
+      'abort',
+      () => {
+        window.clearTimeout(timer)
+        resolve()
+      },
+      { once: true },
+    )
+  })
 }
 
 async function responseMessage(response: Response): Promise<string> {
@@ -60,7 +92,7 @@ async function responseMessage(response: Response): Promise<string> {
     const body = (await response.clone().json()) as { detail?: string }
     if (body.detail) return body.detail
   } catch {
-    // Fall through to plain text.
+    // fall through to plain text
   }
   const text = await response.text().catch(() => '')
   return text || `Request failed (${response.status})`
