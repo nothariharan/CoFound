@@ -17,7 +17,7 @@ import { OrchestratorOrb } from '@/components/orchestrator/OrchestratorOrb'
 
 export default function Dashboard() {
   const shellRef = useShellEntrance()
-  const { workspace, setOnboardingOpen } = useWorkspaceStore()
+  const { workspace, setOnboardingOpen, selectedNodeId } = useWorkspaceStore()
 
   useEffect(() => {
     if (!workspace?.idea_id) return
@@ -38,7 +38,8 @@ export default function Dashboard() {
               <StartupCanvas />
             </div>
           </ReactFlowProvider>
-          <OrchestratorOrb />
+          {/* Orb only when a node is selected — otherwise the right panel is the orchestrator */}
+          {selectedNodeId ? <OrchestratorOrb /> : null}
         </main>
         <RightPanel />
       </div>

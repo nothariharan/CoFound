@@ -135,17 +135,16 @@ export function StartupCanvas() {
   return (
     <div ref={canvasRef} className="relative size-full min-h-0 bg-background">
       {workspace && (
-        <div className="absolute left-6 top-6 z-10 max-w-md">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{workspace.workspace_name}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+        <div className="absolute left-5 top-5 z-10 max-w-sm">
+          <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
             {workspace.nodes.find((n) => n.type === 'core_idea')?.summary ?? workspace.workspace_name}
           </p>
-          <div className="mt-2 inline-flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground">
+          <p className="mt-1.5 text-[11px] tabular-nums text-muted-foreground/80">
             Idea confidence{' '}
-            <span className="font-medium tabular-nums text-foreground">
+            <span className="font-medium text-foreground/80">
               {workspace.nodes.find((n) => n.type === 'core_idea')?.confidence ?? 0}%
             </span>
-          </div>
+          </p>
         </div>
       )}
 

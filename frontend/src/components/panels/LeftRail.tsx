@@ -1,8 +1,5 @@
 import {
   Bot,
-  ChevronDown,
-  Compass,
-  Download,
   GitBranch,
   History,
   LineChart,
@@ -33,9 +30,7 @@ export function LeftRail() {
     selectedNodeId,
     setSelectedNodeId,
     setJournalOpen,
-    setExportOpen,
     setSettingsOpen,
-    setOnboardingOpen,
     setIntegrations,
     integrationDialogId,
     setIntegrationDialogId,
@@ -55,11 +50,6 @@ export function LeftRail() {
       })
       .catch(() => {})
   }, [workspace?.idea_id, fetchIntegrations, setIntegrations])
-
-  const projectList = useMemo(() => {
-    if (!workspace) return []
-    return [{ id: workspace.idea_id, name: workspace.workspace_name, active: true }]
-  }, [workspace])
 
   const handleIntegrationClick = (integration: IntegrationInfo) => {
     if (integration.status === 'coming_soon') return
@@ -82,31 +72,12 @@ export function LeftRail() {
 
   return (
     <>
-      <aside className="shell-panel flex h-full w-[220px] shrink-0 flex-col border-r border-border bg-card">
-        <div className="border-b border-border p-4">
-          <button
-            type="button"
-            onClick={goHome}
-            className="text-sm font-semibold text-foreground transition-colors hover:text-primary"
-          >
-            CoFound
-          </button>
-        </div>
-
-        <div className="border-b border-border p-4">
-          <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Project</p>
-          <button
-            type="button"
-            className="flex w-full items-center justify-between rounded-md py-1 text-sm font-medium text-foreground hover:text-primary"
-            aria-label="Switch project"
-          >
-            <span className="truncate">{workspace?.workspace_name ?? 'Workspace'}</span>
-            <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-          </button>
+      <aside className="shell-panel flex h-full w-[200px] shrink-0 flex-col border-r border-border bg-card">
+        <div className="border-b border-border px-3 py-3">
           <Button
             variant="ghost"
             size="sm"
-            className="mt-2 h-8 gap-1.5 px-0 text-xs text-muted-foreground hover:text-foreground"
+            className="h-8 w-full justify-start gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
             onClick={goHome}
           >
             <Plus className="size-3" />
@@ -115,40 +86,7 @@ export function LeftRail() {
         </div>
 
         <ScrollArea className="flex-1">
-          {projectList.length > 0 && (
-            <div className="p-4">
-              <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Projects
-              </p>
-              <div className="flex flex-col gap-1">
-                {projectList.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={cn(
-                      'rounded-md px-2 py-1.5 text-left text-xs transition-colors',
-                      p.active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3 h-8 w-full gap-1.5 text-xs"
-                onClick={() => setOnboardingOpen(true)}
-              >
-                <Compass className="size-3.5" />
-                Guide Me!
-              </Button>
-            </div>
-          )}
-
-          <Separator />
-
-          <div className="p-4">
+          <div className="p-3">
             <div className="mb-2 flex items-center gap-2">
               <Bot className="size-3.5 text-muted-foreground" />
               <span className="text-xs font-medium text-foreground">Agents</span>
@@ -190,11 +128,11 @@ export function LeftRail() {
 
           <Separator />
 
-          <div className="p-4" data-onboarding="integrations">
-            <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          <div className="p-3" data-onboarding="integrations">
+            <p className="mb-2.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Integrations
             </p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               {integrations.map((int) => (
                 <IntegrationRow
                   key={int.id}
@@ -209,8 +147,8 @@ export function LeftRail() {
           </div>
         </ScrollArea>
 
-        <div className="border-t border-border p-3">
-          <div className="flex flex-col gap-1">
+        <div className="border-t border-border p-2">
+          <div className="flex flex-col gap-0.5">
             <Button
               variant="ghost"
               size="sm"
@@ -218,16 +156,7 @@ export function LeftRail() {
               onClick={() => setJournalOpen(true)}
             >
               <History className="size-3.5" />
-              Decision Journal
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 justify-start gap-2 px-2 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setExportOpen(true)}
-            >
-              <Download className="size-3.5" />
-              Export Workspace
+              Journal
             </Button>
             <Button
               variant="ghost"

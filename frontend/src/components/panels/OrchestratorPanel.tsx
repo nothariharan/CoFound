@@ -269,7 +269,7 @@ function OrchestratorChat() {
 
 export function OrchestratorPanel() {
   return (
-    <aside className="shell-panel flex h-full w-[360px] shrink-0 flex-col border-l border-border bg-card">
+    <aside className="shell-panel flex h-full w-[320px] shrink-0 flex-col border-l border-border bg-card">
       <div className="border-b border-border p-4">
         <h2 className="text-base font-semibold text-foreground">Orchestrator</h2>
         <p className="mt-1 text-xs text-muted-foreground">

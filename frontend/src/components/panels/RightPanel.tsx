@@ -46,7 +46,7 @@ export function RightPanel() {
   }
 
   return (
-    <aside className="shell-panel flex h-full w-[360px] shrink-0 flex-col border-l border-border bg-card">
+    <aside className="shell-panel flex h-full w-[320px] shrink-0 flex-col border-l border-border bg-card">
       <div className="flex items-start justify-between border-b border-border p-4">
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-semibold text-foreground">{selectedNode.title}</h2>
