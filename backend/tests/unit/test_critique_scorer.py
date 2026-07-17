@@ -47,7 +47,7 @@ def test_critique_rejects_fallback_items_even_with_summary(monkeypatch):
     monkeypatch.setattr(scorer, "generate_flash", optimistic)
     result_payload = {
         "summary": "Unavailable placeholder",
-        "sources": ["reddit", "scrapling"],
+        "sources": ["reddit", "web"],
         "items": [
             {
                 "source": "web",

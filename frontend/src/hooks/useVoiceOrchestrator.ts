@@ -167,7 +167,7 @@ export function useVoiceOrchestrator() {
       }
     },
     [
-      workspace?.idea_id,
+      workspace,
       orchestratorMessages,
       appendOrchestratorMessage,
       setHasChatted,

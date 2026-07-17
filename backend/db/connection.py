@@ -19,16 +19,17 @@ async def connect_db() -> AsyncIOMotorDatabase:
     if not uri:
         raise RuntimeError("MONGODB_URI is not configured")
     db_name = os.getenv("MONGODB_DB", "cofounder").strip() or "cofounder"
-    # reuse one client for long running service
+    # One async client serves the single low-concurrency Render instance.
+    # A small, idle-pruned pool avoids reserving memory on the 512 MB plan.
     _client = AsyncIOMotorClient(
         uri,
         tlsCAFile=certifi.where(),
-        minPoolSize=5,
-        maxPoolSize=50,
-        maxIdleTimeMS=300_000,
-        connectTimeoutMS=10_000,
-        serverSelectionTimeoutMS=3_000,
-        socketTimeoutMS=30_000,
+        minPoolSize=0,
+        maxPoolSize=5,
+        maxIdleTimeMS=45_000,
+        connectTimeoutMS=8_000,
+        serverSelectionTimeoutMS=8_000,
+        socketTimeoutMS=25_000,
     )
     _db = _client[db_name]
     await _client.admin.command("ping")

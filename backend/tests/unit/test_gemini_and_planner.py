@@ -15,7 +15,7 @@ def test_gemini_mock_returns_planner_json_without_api_key(monkeypatch):
 
     assert "tasks" in payload
     assert 6 <= len(payload["tasks"]) <= 10
-    assert set(payload["tasks"][0]["tools"]).issubset({"reddit", "scrapling", "firecrawl", "github"})
+    assert set(payload["tasks"][0]["tools"]).issubset({"reddit", "web", "firecrawl", "github"})
 
 
 def test_gemini_mock_returns_critique_json_without_api_key(monkeypatch):
@@ -39,7 +39,7 @@ def test_planner_enqueues_valid_tasks_from_llm_json(monkeypatch, workspace, memo
             }
         )
 
-    monkeypatch.setattr(planner, "run_planner_agent", fake_generate)
+    monkeypatch.setattr(planner, "generate_pro_resilient", fake_generate)
 
     tasks = asyncio.run(planner.plan(workspace, memory_store))
 
@@ -52,7 +52,7 @@ def test_planner_falls_back_when_llm_returns_invalid_json(monkeypatch, workspace
     async def bad_generate(prompt: str, system: str = "") -> str:
         return "not-json"
 
-    monkeypatch.setattr(planner, "run_planner_agent", bad_generate)
+    monkeypatch.setattr(planner, "generate_pro_resilient", bad_generate)
 
     tasks = asyncio.run(planner.plan(workspace, memory_store))
 
@@ -65,11 +65,11 @@ def test_planner_sanitizes_malformed_llm_fields(monkeypatch, workspace, memory_s
     async def malformed_generate(prompt: str, system: str = "") -> str:
         return json.dumps({"tasks": [{"task": "Bad fields", "type": "made_up", "tools": "exa reddit", "priority": "urgent"}]})
 
-    monkeypatch.setattr(planner, "run_planner_agent", malformed_generate)
+    monkeypatch.setattr(planner, "generate_pro_resilient", malformed_generate)
 
     tasks = asyncio.run(planner.plan(workspace, memory_store))
 
     assert len(tasks) == 1
     assert tasks[0].type == "market_intelligence"
-    assert tasks[0].tools == ["scrapling", "reddit"]
+    assert tasks[0].tools == ["web", "reddit"]
     assert tasks[0].priority == 1

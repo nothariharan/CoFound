@@ -9,5 +9,9 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
-      - key: USE_MONGODB_MCP
-        value: "true"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: CORS_ORIGINS
+        value: "https://cofounder-alpha.vercel.app,http://localhost:5173,http://127.0.0.1:5173"

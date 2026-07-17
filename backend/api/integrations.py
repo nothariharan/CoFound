@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from agents.build_observer import observe_build
 from agents.observe_agent import observe_funnel
-from agents.store_protocol import DEFAULT_STORE, publish_workspace_update
+from agents.store_protocol import DEFAULT_STORE, get_store, publish_workspace_update
 
 router = APIRouter(tags=["integrations"])
 
@@ -41,9 +41,7 @@ async def connect_github(payload: GitHubConnectRequest):
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
     try:
-        from mdb_mcp.agent_store import get_agent_store
-
-        await observe_build(payload.workspace_id, payload.repo, store=get_agent_store(), token=payload.access_token)
+        await observe_build(payload.workspace_id, payload.repo, store=get_store(), token=payload.access_token)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     workspace.github_connected = True
@@ -60,9 +58,7 @@ async def connect_posthog(payload: PostHogConnectRequest):
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
     try:
-        from mdb_mcp.agent_store import get_agent_store
-
-        await observe_funnel(payload.workspace_id, store=get_agent_store(), project_id=payload.project_id, api_key=payload.api_key)
+        await observe_funnel(payload.workspace_id, store=get_store(), project_id=payload.project_id, api_key=payload.api_key)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     workspace.posthog_connected = True

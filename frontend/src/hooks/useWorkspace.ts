@@ -1,19 +1,22 @@
 import { useCallback, useState } from 'react'
 import type { TodayPriority, Workspace } from '@/types'
-import { apiUrl } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 
 async function fetchPriority(workspaceId: string): Promise<TodayPriority | null> {
-  const res = await fetch(apiUrl(`/api/priority?workspace_id=${encodeURIComponent(workspaceId)}`))
-  if (!res.ok) return null
-  const data = await res.json()
-  return {
-    action: data.action,
-    reason: data.reason,
-    estimatedTime: data.estimated_time ?? data.estimatedTime,
-    impact: data.impact,
-    nodeType: data.node_type ?? data.nodeType,
-    nodeId: data.node_id ?? data.nodeId,
+  try {
+    const res = await apiFetch(`/api/priority?workspace_id=${encodeURIComponent(workspaceId)}`)
+    const data = await res.json()
+    return {
+      action: data.action,
+      reason: data.reason,
+      estimatedTime: data.estimated_time ?? data.estimatedTime,
+      impact: data.impact,
+      nodeType: data.node_type ?? data.nodeType,
+      nodeId: data.node_id ?? data.nodeId,
+    }
+  } catch {
+    return null
   }
 }
 
@@ -29,12 +32,11 @@ export function useWorkspace() {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(apiUrl('/api/workspace'), {
+        const res = await apiFetch('/api/workspace', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idea }),
         })
-        if (!res.ok) throw new Error('Failed to create workspace')
         const data: Workspace = await res.json()
         setWorkspace(data)
         setPhase('dashboard')
@@ -60,8 +62,7 @@ export function useWorkspace() {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(apiUrl(`/api/workspace/${ideaId}`))
-        if (!res.ok) throw new Error('Workspace not found')
+        const res = await apiFetch(`/api/workspace/${ideaId}`)
         const data: Workspace = await res.json()
         setWorkspace(data)
         setPhase('dashboard')

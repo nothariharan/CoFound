@@ -27,12 +27,11 @@ your startup becomes an **11-node knowledge graph**. one orchestrator runs the s
 
 | thing | what it does here |
 |-------|-------------------|
-| mongodb atlas | graph, task queue, journal, build/observe events, vector kb |
-| mongodb mcp | agents read/write graph at runtime via official mcp server |
+| mongodb atlas | direct graph, task queue, journal, event, and knowledge storage |
 | gemini 2.5 pro | orchestrator, dialogue, pivot classifier, export narrative |
 | gemini flash | researcher loops + critique scoring |
-| google adk | planner breaks workspace into research tasks |
-| firecrawl + scrapling + reddit | market + community evidence |
+| lightweight planner | breaks workspace context into focused research tasks |
+| firecrawl + web + reddit | market + community evidence without a browser process |
 | deepgram (opt) | voice stt/tts through backend proxy |
 
 ping it when backend is up:
@@ -44,10 +43,10 @@ curl http://localhost:8000/health
 happy path looks like:
 
 ```json
-{"status":"ok","store":"atlas","agent_store":"mcp","mongodb_cluster":"CoFound"}
+{"status":"ok","store":"atlas","python":"3.11.9"}
 ```
 
-spawn research and watch the feed for `[Planner/ADK]` and `[MongoDB MCP]` lines
+spawn research and watch the feed for planner and researcher activity
 
 ---
 
@@ -56,7 +55,7 @@ spawn research and watch the feed for `[Planner/ADK]` and `[MongoDB MCP]` lines
 **deps**
 
 - python 3.11+ (3.13 local pytest might cry, prod uses 3.11)
-- node 20+ (mcp server spawns via npx)
+- node 20+
 - atlas cluster
 - [google ai studio key](https://aistudio.google.com/app/apikey)
 
@@ -67,14 +66,8 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate        # windows
 # source .venv/bin/activate   # mac/linux
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 uvicorn main:app --reload --port 8000
-```
-
-blocked pages need scrapling browser fetch:
-
-```bash
-scrapling install
 ```
 
 **frontend**
@@ -102,10 +95,8 @@ copy `.env.example` → `.env` at repo root
 
 | var | req | notes |
 |-----|-----|-------|
-| `MONGODB_URI` | y | atlas for workspace crud |
-| `MDB_MCP_CONNECTION_STRING` | y | same uri, mcp agent store |
-| `USE_MONGODB_MCP` | y | `true` = agents go through mcp |
-| `GOOGLE_API_KEY` | y | gemini + adk planner |
+| `MONGODB_URI` | y | atlas for all persistent application data |
+| `GOOGLE_API_KEY` | y | gemini agents and planner |
 | `GEMINI_PRO_MODEL` | n | default `gemini-2.5-pro` |
 | `FIRECRAWL_API_KEY` | n | web research |
 | `REDDIT_CLIENT_ID` / `SECRET` | n | community research |
@@ -121,7 +112,7 @@ run uvicorn from repo root so `main.py` picks up root `.env`
 ## how it flows
 
 ```
-idea → orchestrator → adk planner → researchers → mongodb graph
+idea → orchestrator → planner → researchers → mongodb graph
            ↓                              ↓
     voice / chat ui                  sse → frontend
            ↓
@@ -130,10 +121,7 @@ idea → orchestrator → adk planner → researchers → mongodb graph
 
 deeper docs → [architecture](docs/architecture.md) · [mongodb schema](docs/mongodb_schema.md)
 
-**two db paths (same atlas db)**
-
-- workspace crud → motor direct (`/api/workspace`)
-- agent orchestration → mcp graph store (`/api/agents/*`)
+All API and agent operations share one direct async MongoDB store.
 
 **key routes**
 
@@ -157,13 +145,10 @@ cofounder/
 │   ├── main.py          # fastapi entry, store bootstrap
 │   ├── api/             # routes (workspace, agents, feed, voice, export)
 │   ├── agents/          # orchestrator, researcher, planner, growth, etc
-│   ├── agents/adk/      # google adk planner
-│   ├── mdb_mcp/         # mcp client + agent graph store
-│   └── tools/           # firecrawl, scrapling, github, posthog, deepgram
+│   └── tools/           # firecrawl, web, github, posthog, deepgram
 ├── frontend/            # vite + react + react flow
 ├── docs/                # architecture + schema
-├── scripts/             # atlas seed + indexes
-└── cloud_run/           # optional adk deploy (off by default)
+└── scripts/             # atlas seed + indexes
 ```
 
 ---

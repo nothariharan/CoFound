@@ -5,14 +5,14 @@ import json
 import re
 from typing import Any
 
-from agents.adk.runner import run_planner_agent
 from agents.store_protocol import GraphStore, ResearchTask
 from graph.schema import WorkspaceDocument
+from llm.gemini import generate_pro_resilient
 from sse.feed import feed
 
 PLANNER_SYSTEM = """You are CoFound's Planner agent.
 Return ONLY JSON: {"tasks":[{"task":str,"type":node_type,"tools":[str],"priority":int}]}.
-Create 6-10 focused research tasks. Use only these tools: reddit, scrapling, firecrawl, github.
+Create 6-10 focused research tasks. Use only these tools: reddit, web, firecrawl, github.
 Node types: audience, market_intelligence, competitors, revenue, product_vision, tech_stack.
 """
 
@@ -22,7 +22,7 @@ async def plan(workspace: WorkspaceDocument, store: GraphStore) -> list[Research
 
     await feed.publish(
         workspace.idea_id,
-        {"text": "[MongoDB MCP] Knowledge base search via aggregate", "type": "info"},
+        {"text": "[Planner] Reading product knowledge from MongoDB", "type": "info"},
     )
     kb = await store.search_knowledge_base(_workspace_brief(workspace), limit=5)
     prompt = json.dumps(
@@ -34,7 +34,7 @@ async def plan(workspace: WorkspaceDocument, store: GraphStore) -> list[Research
         indent=2,
     )
     try:
-        raw = await run_planner_agent(prompt)
+        raw = await generate_pro_resilient(prompt, system=PLANNER_SYSTEM)
         manifest = _parse_json(raw)
         items = manifest.get("tasks") if isinstance(manifest, dict) else manifest
     except Exception:
@@ -79,8 +79,8 @@ def _tool_list(value: Any) -> list[str]:
         raw = value
     else:
         raw = ["firecrawl", "reddit"]
-    allowed = {"reddit", "scrapling", "firecrawl", "github"}
-    aliases = {"exa": "scrapling", "gummysearch": "scrapling", "web": "scrapling", "producthunt": "firecrawl", "product_hunt": "firecrawl"}
+    allowed = {"reddit", "web", "firecrawl", "github"}
+    aliases = {"exa": "web", "gummysearch": "web", "producthunt": "firecrawl", "product_hunt": "firecrawl"}
     tools = [aliases.get(str(t).lower().strip(), str(t).lower().strip()) for t in raw if str(t).strip()]
     tools = [tool for tool in tools if tool in allowed]
     return tools or ["firecrawl", "reddit"]

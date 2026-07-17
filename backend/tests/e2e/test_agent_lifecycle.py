@@ -49,7 +49,7 @@ def test_full_agent_lifecycle_without_external_services(monkeypatch, workspace, 
     monkeypatch.setattr(researcher, "execute_tools", _deterministic_tools)
     monkeypatch.setattr(researcher, "generate_flash", _summary)
     monkeypatch.setattr(researcher, "score_result", _accept)
-    monkeypatch.setattr(dialogue, "generate_pro", _dialogue_json)
+    monkeypatch.setattr(dialogue, "generate_pro_resilient", _dialogue_json)
 
     async def run():
         await memory_store.enqueue_task(

@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from agents.export_agent import generate_export
-from mdb_mcp.agent_store import get_agent_store
+from agents.store_protocol import get_store
 from export.zipper import get_export_path
 
 router = APIRouter(tags=["export"])
@@ -19,7 +19,7 @@ class ExportRequest(BaseModel):
 @router.post("/export")
 async def export_workspace(payload: ExportRequest):
     try:
-        result = await generate_export(payload.workspace_id, store=get_agent_store())
+        result = await generate_export(payload.workspace_id, store=get_store())
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return {"export_url": result["export_url"], "files": result["files"]}

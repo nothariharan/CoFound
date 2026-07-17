@@ -1,10 +1,9 @@
-"""fastapi entrypoint — wires routes and boots atlas + mcp in the background"""
+"""FastAPI entrypoint with one direct MongoDB-backed graph store."""
 
-import asyncio
 import logging
 import os
 import sys
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -23,20 +22,16 @@ from api.integrations import router as integrations_router
 from api.nodes import router as nodes_router
 from api.voice import router as voice_router
 from api.workspace import router as workspace_router
-from mdb_mcp.agent_store import agent_store_mode, set_agent_store, use_mongodb_mcp_enabled
-
 logger = logging.getLogger(__name__)
 
 
 async def _bootstrap_stores(app: FastAPI) -> None:
-    """connect atlas for crud and mcp for agent loops — falls back to memory on failure"""
+    """Connect the single application store before accepting traffic."""
 
     mongodb_uri = os.getenv("MONGODB_URI", "").strip()
     app.state.store = "memory"
-    app.state.agent_store = "default"
     DEFAULT_STORE.set(MemoryGraphStore())
 
-    # workspace routes use motor directly
     if mongodb_uri:
         try:
             from db.atlas_store import AtlasGraphStore
@@ -46,7 +41,7 @@ async def _bootstrap_stores(app: FastAPI) -> None:
             DEFAULT_STORE.set(AtlasGraphStore(db))
             app.state.db = db
             app.state.store = "atlas"
-            logger.info("Connected to MongoDB Atlas for API routes")
+            logger.info("Connected to MongoDB Atlas")
         except Exception as exc:
             logger.warning("MongoDB connection failed, using in-memory store: %s", exc)
             DEFAULT_STORE.set(MemoryGraphStore())
@@ -54,51 +49,17 @@ async def _bootstrap_stores(app: FastAPI) -> None:
     else:
         logger.info("MONGODB_URI not set — using in-memory store")
 
-    # agent spawn research pivot export go through mcp when enabled
-    if use_mongodb_mcp_enabled():
-        try:
-            from db import collections as col
-            from mdb_mcp.client import start_mcp_session
-            from mdb_mcp.db_ops import mcp_find
-            from mdb_mcp.graph_store import McpGraphStore
-
-            await start_mcp_session()
-            await mcp_find(col.STARTUP_GRAPHS, limit=1)
-            set_agent_store(McpGraphStore(), mode="mcp")
-            app.state.agent_store = "mcp"
-            logger.info("MongoDB MCP agent store enabled")
-        except Exception as exc:
-            logger.warning("MongoDB MCP startup failed, agents will use DEFAULT_STORE: %s", exc)
-            app.state.agent_store = agent_store_mode()
-    else:
-        logger.info("USE_MONGODB_MCP disabled — agents will use DEFAULT_STORE")
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """start with memory store immediately so /health works on render before atlas boots"""
+    """Initialize persistence once and close it cleanly at shutdown."""
 
     logger.info("Python %s.%s.%s", *sys.version_info[:3])
     app.state.store = "memory"
-    app.state.agent_store = "default"
     DEFAULT_STORE.set(MemoryGraphStore())
-
-    # non blocking bootstrap — render health check passes while atlas/mcp connect
-    bootstrap_task = asyncio.create_task(_bootstrap_stores(app))
+    await _bootstrap_stores(app)
 
     yield
-
-    bootstrap_task.cancel()
-    with suppress(asyncio.CancelledError):
-        await bootstrap_task
-
-    if getattr(app.state, "agent_store", None) == "mcp":
-        try:
-            from mdb_mcp.client import close_mcp_session
-
-            await close_mcp_session()
-        except Exception:
-            pass
 
     if getattr(app.state, "store", None) == "atlas":
         try:
@@ -113,7 +74,10 @@ app = FastAPI(title="CoFounder API", version="0.1.0", lifespan=lifespan)
 
 _cors_origins = [
     origin.strip()
-    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,https://cofounder-alpha.vercel.app",
+    ).split(",")
     if origin.strip()
 ]
 
@@ -137,14 +101,10 @@ app.include_router(voice_router, prefix="/api")
 
 @app.get("/health")
 async def health():
-    """render pings this — must return fast even while mcp is still starting"""
-
-    from mdb_mcp.mongodb_mcp import mcp_cluster_label
+    """Lightweight liveness and persistence status for Render."""
 
     return {
         "status": "ok",
         "store": getattr(app.state, "store", "memory"),
-        "agent_store": getattr(app.state, "agent_store", "default"),
-        "mongodb_cluster": mcp_cluster_label(),
         "python": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
     }

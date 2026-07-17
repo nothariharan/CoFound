@@ -6,7 +6,7 @@ from api import agents as agents_api
 from api import export as export_api
 from api import workspace as workspace_api
 from agents.orchestrator import OrchestratorResult
-from agents.store_protocol import ResearchTask
+from agents.store_protocol import DEFAULT_STORE, ResearchTask
 from graph.schema import BaseNode, NodeType, WorkspaceCreateRequest, canonical_node_id
 from main import app
 
@@ -36,7 +36,7 @@ def test_pivot_route_returns_contract(monkeypatch, workspace):
 
 
 def test_research_node_route_queues_one_approved_node(monkeypatch, workspace, memory_store):
-    agents_api.DEFAULT_STORE.set(memory_store)
+    DEFAULT_STORE.set(memory_store)
     workspace.nodes[0].confidence = 70
     workspace.nodes.append(
         BaseNode(

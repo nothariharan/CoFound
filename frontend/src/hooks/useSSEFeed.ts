@@ -18,9 +18,6 @@ export function useSSEFeed(workspaceId?: string) {
   const setWorkspace = useWorkspaceStore((s) => s.setWorkspace)
 
   useEffect(() => {
-    setMessages([])
-    setConnected(false)
-
     const path = workspaceId ? `/api/feed?workspace_id=${workspaceId}` : '/api/feed'
     const source = new EventSource(apiUrl(path))
     sourceRef.current = source

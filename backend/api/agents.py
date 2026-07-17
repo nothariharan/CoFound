@@ -16,9 +16,9 @@ from agents.observe_agent import observe_funnel
 from agents.orchestrator import spawn_research_session
 from agents.orchestrator_tools import _spawn_research_agents
 from agents.researcher import run_researchers
-from agents.store_protocol import ResearchTask, publish_workspace_update
-from mdb_mcp.agent_store import get_agent_store
+from agents.store_protocol import ResearchTask, get_store, publish_workspace_update
 from graph.schema import NodeStatus, NodeType, node_agent_id
+from llm.gemini import GeminiError
 from sse.feed import feed
 
 router = APIRouter(tags=["agents"])
@@ -121,7 +121,7 @@ async def orchestrator_chat_route(payload: OrchestratorChatRequest):
             payload.workspace_id,
             payload.message,
             history=payload.history,
-            store=get_agent_store(),
+            store=get_store(),
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -133,12 +133,12 @@ async def orchestrator_chat_route(payload: OrchestratorChatRequest):
     )
 
 
-# --- bulk research session (adk planner + parallel researchers) ---
+# --- bulk research session (planner + bounded researcher worker) ---
 
 @router.post("/agents/spawn", response_model=SpawnResponse)
 async def spawn_agents(payload: SpawnRequest):
     try:
-        result = await spawn_research_session(payload.workspace_id, trigger=payload.trigger, store=get_agent_store())
+        result = await spawn_research_session(payload.workspace_id, trigger=payload.trigger, store=get_store())
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return SpawnResponse(session_id=result.session_id, tasks_queued=result.tasks_queued, agents_active=result.agents_active)
@@ -149,7 +149,7 @@ async def spawn_agents(payload: SpawnRequest):
 @router.post("/agents/pivot")
 async def pivot_agents(payload: PivotRequest):
     try:
-        result = await classify_pivot(payload.workspace_id, payload.message, store=get_agent_store(), enqueue=False)
+        result = await classify_pivot(payload.workspace_id, payload.message, store=get_store(), enqueue=False)
         return result
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -157,7 +157,7 @@ async def pivot_agents(payload: PivotRequest):
 
 @router.post("/agents/research-node", response_model=SpawnResponse)
 async def research_node(payload: ResearchNodeRequest):
-    workspace = await get_agent_store().get_workspace(payload.workspace_id)
+    workspace = await get_store().get_workspace(payload.workspace_id)
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
     node = next((item for item in workspace.nodes if item.type == payload.node_type), None)
@@ -175,11 +175,11 @@ async def research_node(payload: ResearchNodeRequest):
 
 @router.post("/agents/handoff-priority", response_model=SpawnResponse)
 async def handoff_priority(payload: HandoffRequest):
-    workspace = await get_agent_store().get_workspace(payload.workspace_id)
+    workspace = await get_store().get_workspace(payload.workspace_id)
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
 
-    priority = await recommend_priority(payload.workspace_id, store=get_agent_store())
+    priority = await recommend_priority(payload.workspace_id, store=get_store())
     node_type_value = priority.get("node_type") or ""
     try:
         node_type = NodeType(node_type_value)
@@ -218,7 +218,7 @@ async def handoff_priority(payload: HandoffRequest):
 
 @router.post("/agents/custom-task", response_model=SpawnResponse)
 async def custom_task(payload: CustomTaskRequest):
-    workspace = await get_agent_store().get_workspace(payload.workspace_id)
+    workspace = await get_store().get_workspace(payload.workspace_id)
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
 
@@ -239,7 +239,7 @@ async def custom_task(payload: CustomTaskRequest):
     agent_id = node_agent_id(node_type)
     approved = node.model_copy(deep=True)
     approved.active_agents = [agent_id]
-    await get_agent_store().update_node(payload.workspace_id, approved)
+    await get_store().update_node(payload.workspace_id, approved)
 
     core_node = next((item for item in workspace.nodes if item.type == NodeType.CORE_IDEA), None)
     idea_description = ""
@@ -259,8 +259,8 @@ async def custom_task(payload: CustomTaskRequest):
         node_id=node.node_id,
         query=query,
     )
-    await get_agent_store().enqueue_task(task)
-    asyncio.create_task(run_researchers(payload.workspace_id, store=get_agent_store(), worker_count=1))
+    await get_store().enqueue_task(task)
+    asyncio.create_task(run_researchers(payload.workspace_id, store=get_store(), worker_count=1))
     await feed.publish(
         payload.workspace_id,
         {
@@ -269,7 +269,7 @@ async def custom_task(payload: CustomTaskRequest):
             "node_id": node.node_id,
         },
     )
-    workspace = await get_agent_store().get_workspace(payload.workspace_id)
+    workspace = await get_store().get_workspace(payload.workspace_id)
     if workspace is not None:
         await publish_workspace_update(payload.workspace_id, workspace)
     return SpawnResponse(session_id=task.task_id, tasks_queued=1, agents_active=1)
@@ -282,7 +282,7 @@ async def spawn_research_agents(payload: SpawnResearchAgentsRequest):
             payload.workspace_id,
             [topic.model_dump() for topic in payload.topics],
             str(payload.user_message or ""),
-            store=get_agent_store(),
+            store=get_store(),
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -298,7 +298,7 @@ async def spawn_research_agents(payload: SpawnResearchAgentsRequest):
 @router.get("/priority")
 async def priority(workspace_id: str = Query(...)):
     try:
-        return await recommend_priority(workspace_id, store=get_agent_store())
+        return await recommend_priority(workspace_id, store=get_store())
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -306,29 +306,32 @@ async def priority(workspace_id: str = Query(...)):
 @router.get("/agents/dialogue", response_model=DialogueResponse)
 async def get_dialogue(workspace_id: str = Query(...)):
     try:
-        result = await synthesize_dialogue(workspace_id, store=get_agent_store())
+        result = await synthesize_dialogue(workspace_id, store=get_store())
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except GeminiError:
+        raise HTTPException(status_code=503, detail="AI service is temporarily busy. Please try again in a moment.")
     return DialogueResponse(brief=result["brief"], question=result["question"])
 
 
 @router.post("/agents/dialogue", response_model=DialogueResponse)
 async def post_dialogue(payload: DialogueRequest):
     try:
-        result = await synthesize_dialogue(payload.workspace_id, store=get_agent_store())
+        result = await synthesize_dialogue(payload.workspace_id, store=get_store(), message=payload.message)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    if payload.message:
-        result["brief"] = f"{result['brief']} User context: {payload.message.strip()}"
+    except GeminiError:
+        raise HTTPException(status_code=503, detail="AI service is temporarily busy. Please try again in a moment.")
     return DialogueResponse(brief=result["brief"], question=result["question"])
 
 
 @router.post("/agents/observe")
 async def observe_build_route(payload: ObserveBuildRequest):
     try:
-        result = await observe_build(payload.workspace_id, payload.repo, store=get_agent_store(), token=payload.access_token)
-        if hasattr(get_agent_store(), "log_build_event"):
-            await get_agent_store().log_build_event(payload.workspace_id, result)
+        store = get_store()
+        result = await observe_build(payload.workspace_id, payload.repo, store=store, token=payload.access_token)
+        if hasattr(store, "log_build_event"):
+            await store.log_build_event(payload.workspace_id, result)
         return result
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -359,13 +362,13 @@ async def _start_node_research(
     if node.active_agents:
         raise HTTPException(status_code=409, detail=f"{node.title or node.type.value} research is already running")
 
-    workspace = await get_agent_store().get_workspace(workspace_id)
+    workspace = await get_store().get_workspace(workspace_id)
     if workspace is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
 
     approved = node.model_copy(deep=True)
     approved.active_agents = [agent_label]
-    await get_agent_store().update_node(workspace_id, approved)
+    await get_store().update_node(workspace_id, approved)
 
     core_node = next((item for item in workspace.nodes if item.type == NodeType.CORE_IDEA), None)
     idea_description = ""
@@ -380,13 +383,13 @@ async def _start_node_research(
         priority=1,
         node_id=node.node_id,
     )
-    await get_agent_store().enqueue_task(task)
-    asyncio.create_task(run_researchers(workspace_id, store=get_agent_store(), worker_count=1))
+    await get_store().enqueue_task(task)
+    asyncio.create_task(run_researchers(workspace_id, store=get_store(), worker_count=1))
     await feed.publish(
         workspace_id,
         {"text": f"{feed_prefix} Research started for {node.title or node.type.value}.", "type": "info", "node_id": node.node_id},
     )
-    workspace = await get_agent_store().get_workspace(workspace_id)
+    workspace = await get_store().get_workspace(workspace_id)
     if workspace is not None:
         await publish_workspace_update(workspace_id, workspace)
     return SpawnResponse(session_id=task.task_id, tasks_queued=1, agents_active=1)
@@ -421,14 +424,15 @@ def _node_tools(node_type: NodeType) -> list[str]:
 @router.post("/agents/observe-funnel")
 async def observe_funnel_route(payload: ObserveFunnelRequest):
     try:
+        store = get_store()
         result = await observe_funnel(
             payload.workspace_id,
-            store=get_agent_store(),
+            store=store,
             project_id=payload.project_id,
             api_key=payload.api_key,
         )
-        if hasattr(get_agent_store(), "log_observe_event"):
-            await get_agent_store().log_observe_event(payload.workspace_id, result)
+        if hasattr(store, "log_observe_event"):
+            await store.log_observe_event(payload.workspace_id, result)
         return result
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

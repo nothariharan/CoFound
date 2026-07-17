@@ -285,7 +285,7 @@ def _source_label(item: dict[str, Any]) -> str:
         return "Web"
     if item.get("origin") == "reddit":
         return "Reddit"
-    if item.get("source") == "scrapling" or item.get("tool") == "scrapling":
+    if item.get("source") == "web" or item.get("tool") == "web":
         return "Web"
     return str(item.get("source") or item.get("tool") or "Research").title()
 
@@ -318,6 +318,12 @@ class StoreProxy:
 
 
 DEFAULT_STORE: StoreProxy = StoreProxy()
+
+
+def get_store() -> GraphStore:
+    """Return the active application store."""
+
+    return DEFAULT_STORE.get()
 
 
 async def publish_workspace_update(workspace_id: str, workspace: WorkspaceDocument) -> None:

@@ -19,15 +19,30 @@ export function DecisionJournal() {
   const { fetchJournal } = useAgentActions()
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(false)
+  const workspaceId = workspace?.idea_id
 
   useEffect(() => {
-    if (!journalOpen || !workspace?.idea_id) return
-    setLoading(true)
-    fetchJournal(workspace.idea_id)
-      .then(setEntries)
-      .catch(() => setEntries([]))
-      .finally(() => setLoading(false))
-  }, [journalOpen, workspace?.idea_id, fetchJournal])
+    if (!journalOpen || !workspaceId) return
+    const ideaId = workspaceId
+    let active = true
+
+    async function loadJournal() {
+      setLoading(true)
+      try {
+        const nextEntries = await fetchJournal(ideaId)
+        if (active) setEntries(nextEntries)
+      } catch {
+        if (active) setEntries([])
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    void loadJournal()
+    return () => {
+      active = false
+    }
+  }, [journalOpen, workspaceId, fetchJournal])
 
   return (
     <Dialog open={journalOpen} onOpenChange={setJournalOpen}>

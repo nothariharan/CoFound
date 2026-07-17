@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import sys
-import types
 
 from agents import researcher
 from agents.store_protocol import ResearchTask
 from critique.scorer import CritiqueResult
 from graph.schema import BaseNode
-from tools import scrapling_web
+from tools import web_search
 
 
 async def _fake_tools(query: str, tools: list[str]):
@@ -89,58 +87,35 @@ def test_execute_tools_returns_error_blocks_for_tool_exceptions(monkeypatch):
     assert results == [{"tool": "reddit", "query": "inventory", "items": [], "sources": ["reddit"], "error": "reddit down"}]
 
 
-def test_execute_tools_routes_broad_aliases_to_scrapling(monkeypatch):
-    async def fake_broad(query: str, limit: int = 5):
+def test_execute_tools_routes_broad_aliases_to_web(monkeypatch):
+    async def fake_search(query: str, limit: int = 5):
         return {
-            "tool": "scrapling",
+            "tool": "web",
             "query": query,
             "items": [{"source": "web", "origin": "reddit", "title": "pain", "url": "https://reddit.com/r/test"}],
-            "sources": ["scrapling", "web"],
+            "sources": ["web"],
         }
 
-    monkeypatch.setattr(researcher.scrapling_web, "search_broad", fake_broad)
+    monkeypatch.setattr(researcher.web_search, "search", fake_search)
 
-    results = asyncio.run(researcher.execute_tools("pricing pain", ["scrapling", "exa", "gummysearch"]))
+    results = asyncio.run(researcher.execute_tools("pricing pain", ["web", "exa", "gummysearch"]))
 
-    assert [result["tool"] for result in results] == ["scrapling", "scrapling", "scrapling"]
+    assert [result["tool"] for result in results] == ["web", "web", "web"]
     assert all(result["items"][0]["url"] for result in results)
 
 
-def test_scrapling_fetch_tiered_escalates_to_stealth(monkeypatch):
-    calls: list[str] = []
+def test_web_search_parses_lightweight_results():
+    body = """
+    <div class="result">
+      <h2><a class="result__a" href="https://example.com">Example result</a></h2>
+      <a class="result__snippet">Useful market evidence.</a>
+    </div></div>
+    """
 
-    class EmptySession:
-        def __init__(self, *args, **kwargs):
-            pass
+    items = web_search._parse_results(body, 5)
 
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return None
-
-        def get(self, *args, **kwargs):
-            calls.append("http")
-            return ""
-
-    class Stealthy:
-        @staticmethod
-        def fetch(*args, **kwargs):
-            calls.append("stealth")
-            return "This page has enough text to count as a successful browser fallback. " * 3
-
-    fetchers = types.ModuleType("scrapling.fetchers")
-    fetchers.FetcherSession = EmptySession
-    fetchers.StealthyFetcher = Stealthy
-    scrapling = types.ModuleType("scrapling")
-    scrapling.fetchers = fetchers
-    monkeypatch.setitem(sys.modules, "scrapling", scrapling)
-    monkeypatch.setitem(sys.modules, "scrapling.fetchers", fetchers)
-
-    page = scrapling_web._fetch_tiered("https://example.com")
-
-    assert "successful browser fallback" in str(page)
-    assert calls == ["http", "stealth"]
+    assert items[0]["title"] == "Example result"
+    assert items[0]["url"] == "https://example.com"
 
 
 def test_commit_fallback_creates_matching_node_instead_of_overwriting_core(workspace):

@@ -5,8 +5,7 @@ import json
 import re
 from typing import Any
 
-from agents.store_protocol import GraphStore, ResearchTask, publish_workspace_update
-from mdb_mcp.agent_store import get_agent_store
+from agents.store_protocol import GraphStore, ResearchTask, get_store, publish_workspace_update
 from graph.schema import NodeStatus, NodeType
 from llm.gemini import generate_pro
 from sse.feed import feed
@@ -20,7 +19,7 @@ ALL_NODES = [n.value for n in NodeType]
 
 
 async def classify_pivot(workspace_id: str, message: str, store: GraphStore | None = None, enqueue: bool = True) -> dict[str, Any]:
-    store = store or get_agent_store()
+    store = store or get_store()
     workspace = await store.get_workspace(workspace_id)
     if workspace is None:
         raise ValueError(f"Workspace not found: {workspace_id}")

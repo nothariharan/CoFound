@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useWorkspace } from '@/hooks/useWorkspace'
 import { useIntakeAnimation } from '@/hooks/useAnimations'
 import { clearSavedWorkspaceId, getSavedWorkspaceId } from '@/config/storage'
@@ -9,6 +9,7 @@ import { AgentCursors } from '@/components/intake/AgentCursors'
 import { CoFoundLogo } from '@/components/intake/OrbitalDiagram'
 
 import { AgentWorkGallery } from '@/components/intake/AgentWorkGallery'
+import { ApiError, warmApi } from '@/lib/api'
 
 const BRANDED_GRADIENT = {
   gradientColors: ['#c96442', '#8a4733', '#3a241a', '#161311', '#0c0c0b', '#0a0a09'],
@@ -24,18 +25,30 @@ export function IdeaInput() {
   const [idea, setIdea] = useState('')
   const [resuming, setResuming] = useState(false)
   const [framing, setFraming] = useState(false)
+  const [inputPulsing, setInputPulsing] = useState(false)
+  const [sessionExpired, setSessionExpired] = useState(false)
+  const [resumeHint, setResumeHint] = useState<string | null>(null)
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'ready' | 'unavailable'>('checking')
   const { createWorkspace, fetchWorkspace, loading, error } = useWorkspace()
   const containerRef = useIntakeAnimation()
   const formRef = useRef<HTMLFormElement>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!idea.trim() || loading) return
+  useEffect(() => {
+    const controller = new AbortController()
+    void warmApi(controller.signal).then((ready) => setBackendStatus(ready ? 'ready' : 'unavailable'))
+    return () => controller.abort()
+  }, [])
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!idea.trim() || loading || framing) return
     setFraming(true)
+    setSessionExpired(false)
+    setResumeHint(null)
     try {
       await Promise.all([
         createWorkspace(idea.trim()),
-        new Promise((resolve) => window.setTimeout(resolve, 900)),
+        new Promise((resolve) => window.setTimeout(resolve, 400)),
       ])
     } finally {
       setFraming(false)
@@ -46,17 +59,43 @@ export function IdeaInput() {
     const savedId = getSavedWorkspaceId()
     if (savedId) {
       setResuming(true)
+      setSessionExpired(false)
+      setResumeHint(null)
       try {
         await fetchWorkspace(savedId)
         return
-      } catch {
-        clearSavedWorkspaceId()
+      } catch (err) {
+        const status = err instanceof ApiError ? err.status : undefined
+        if (status === 404) {
+          clearSavedWorkspaceId()
+          setSessionExpired(true)
+        } else {
+          setResumeHint(
+            status === 503 || status === 502 || status === 504
+              ? 'The workspace service is waking up. Tap Get started again in a moment.'
+              : 'Could not reopen your workspace yet. Check your connection and try again.',
+          )
+          void warmApi().then((ready) => setBackendStatus(ready ? 'ready' : 'unavailable'))
+        }
       } finally {
         setResuming(false)
       }
+      return
     }
-    formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+
+    if (idea.trim()) {
+      await handleSubmit()
+      return
+    }
+
+    const input = formRef.current?.querySelector<HTMLInputElement>('input')
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    input?.focus()
+    setInputPulsing(true)
+    window.setTimeout(() => setInputPulsing(false), 700)
   }
+
+  const busy = loading || framing || resuming
 
   return (
     <AppCursorProvider>
@@ -78,11 +117,14 @@ export function IdeaInput() {
         <div className="flex items-center gap-3">
           <Button
             type="button"
-            onClick={handleGetStarted}
-            disabled={loading || resuming}
-            className="intake-nav-btn h-9 rounded-lg bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90"
+            onClick={() => void handleGetStarted()}
+            disabled={busy}
+            className="intake-nav-btn h-9 gap-2 rounded-lg bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90"
           >
-            {resuming ? 'Opening...' : 'Get started'}
+            {(resuming || (framing && !idea.trim())) && (
+              <span className="size-3.5 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+            )}
+            {resuming ? 'Opening…' : framing ? 'Starting…' : 'Get started'}
           </Button>
         </div>
       </header>
@@ -110,18 +152,53 @@ export function IdeaInput() {
               assumptions, building your product, and scaling growth — all from your single idea.
             </p>
 
-            {framing && (
-              <div className="mb-4 rounded-lg border border-primary/30 bg-card/70 px-4 py-3 text-center text-sm text-foreground backdrop-blur-sm">
-                Framing your startup, naming the workspace, and preparing the first decision point...
+            {(framing || resuming) && (
+              <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary/30 bg-card/70 px-4 py-3 text-left text-sm text-foreground backdrop-blur-sm" role="status" aria-live="polite">
+                <span className="size-4 shrink-0 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
+                <span>
+                  <strong className="block font-medium">
+                    {resuming ? 'Opening your workspace' : 'Building your workspace'}
+                  </strong>
+                  <span className="text-xs text-muted-foreground">
+                    {resuming
+                      ? 'Restoring your graph and latest agent progress…'
+                      : 'Framing the idea and preparing your first decision point…'}
+                  </span>
+                </span>
+              </div>
+            )}
+
+            {!framing && !resuming && backendStatus === 'checking' && (
+              <p className="mb-3 flex items-center gap-2 text-xs text-muted-foreground" role="status">
+                <span className="size-3 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+                Waking up the workspace service…
+              </p>
+            )}
+
+            {!framing && !resuming && backendStatus === 'unavailable' && (
+              <p className="mb-3 text-xs text-amber-300">
+                The service is taking longer than usual. You can still continue and retry.
+              </p>
+            )}
+
+            {sessionExpired && (
+              <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200 backdrop-blur-sm">
+                Your previous session has expired. Enter a new idea below to start fresh.
+              </div>
+            )}
+
+            {resumeHint && (
+              <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200 backdrop-blur-sm">
+                {resumeHint}
               </div>
             )}
 
             <form
               ref={formRef}
-              onSubmit={handleSubmit}
+              onSubmit={(e) => void handleSubmit(e)}
               className="intake-input-shell mb-4 w-full max-w-2xl"
             >
-              <div className="flex items-center gap-3 rounded-xl border border-border bg-card/80 p-2 pl-4 backdrop-blur-sm">
+              <div className={`flex items-center gap-3 rounded-xl border bg-card/80 p-2 pl-4 backdrop-blur-sm transition-all duration-300 ${inputPulsing ? 'border-primary ring-2 ring-primary/50' : 'border-border'}`}>
                 <svg viewBox="0 0 16 16" className="size-4 shrink-0 text-primary" aria-hidden>
                   <path
                     d="M8 1l1.5 3.5L13 6l-3.5 1.5L8 11 6.5 7.5 3 6l3.5-1.5L8 1Z"
@@ -135,13 +212,17 @@ export function IdeaInput() {
                   placeholder="Describe your startup idea in a sentence or two..."
                   className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   autoFocus
+                  disabled={busy}
                 />
                 <Button
                   type="submit"
-                  disabled={!idea.trim() || loading || framing}
+                  disabled={!idea.trim() || busy}
                   className="h-10 shrink-0 gap-2 rounded-lg bg-primary px-5 text-sm text-primary-foreground hover:bg-primary/90"
                 >
-                  {loading || framing ? 'Framing...' : 'Continue'}
+                  {(loading || framing) && (
+                    <span className="size-3.5 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                  )}
+                  {loading || framing ? 'Framing…' : 'Continue'}
                   {!loading && !framing && (
                     <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
                       <path

@@ -7,13 +7,11 @@ const USER_CURSOR_COLOR = '#ffffff'
 const USER_CURSOR_TEXT_COLOR = '#000000'
 
 function useCustomCursorEnabled() {
-  const [enabled, setEnabled] = useState(false)
-
-  useEffect(() => {
+  const [enabled] = useState(() => {
     const finePointer = window.matchMedia('(pointer: fine)').matches
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    setEnabled(finePointer && !reducedMotion)
-  }, [])
+    return finePointer && !reducedMotion
+  })
 
   return enabled
 }

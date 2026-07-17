@@ -12,8 +12,7 @@ from agents.export_agent import generate_export
 from agents.growth_agent import handoff_target_node, recommend_priority
 from agents.orchestrator import spawn_research_session
 from agents.researcher import run_researchers
-from agents.store_protocol import GraphStore, ResearchTask, publish_workspace_update
-from mdb_mcp.agent_store import get_agent_store
+from agents.store_protocol import GraphStore, ResearchTask, get_store, publish_workspace_update
 from graph.schema import BaseNode, NodeStatus, NodeType, node_agent_id
 from sse.feed import feed
 
@@ -169,7 +168,7 @@ async def execute_tool(
     store: GraphStore | None = None,
 ) -> dict[str, Any]:
     """run a tool and return a json serializable result"""
-    store = store or get_agent_store()
+    store = store or get_store()
 
     if name == "get_workspace_summary":
         return await _get_workspace_summary(workspace_id, store)
@@ -531,7 +530,7 @@ async def _spawn_research_agents(
             },
         )
 
-    worker_count = min(len(created), 3)
+    worker_count = 1
     asyncio.create_task(run_researchers(workspace_id, store=store, worker_count=worker_count))
     workspace = await store.get_workspace(workspace_id)
     if workspace is not None:

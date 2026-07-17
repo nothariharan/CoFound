@@ -90,7 +90,6 @@ export function StartupCanvas() {
   useEffect(() => {
     if (!workspace) {
       prevUnlockedRef.current = new Set()
-      setNewlyUnlocked([])
       return
     }
 

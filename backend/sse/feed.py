@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections import defaultdict, deque
+from collections import OrderedDict, defaultdict, deque
 from typing import Any, AsyncIterator
 
 
 class SSEFeed:
-    def __init__(self, history_size: int = 100) -> None:
+    def __init__(self, history_size: int = 50, max_workspaces: int = 200) -> None:
         self._subscribers: dict[str, set[asyncio.Queue[dict[str, Any]]]] = defaultdict(set)
-        self._history: dict[str, deque[dict[str, Any]]] = defaultdict(lambda: deque(maxlen=history_size))
+        self._history: OrderedDict[str, deque[dict[str, Any]]] = OrderedDict()
+        self._history_size = history_size
+        self._max_workspaces = max_workspaces
 
     async def publish(self, workspace_id: str, event: dict[str, Any]) -> None:
         payload = {
@@ -22,7 +24,10 @@ class SSEFeed:
             **({"workspace": event["workspace"]} if event.get("workspace") else {}),
             **({"dialogue": event["dialogue"]} if event.get("dialogue") else {}),
         }
-        self._history[workspace_id].append(payload)
+        history = self._history.setdefault(workspace_id, deque(maxlen=self._history_size))
+        history.append(payload)
+        self._history.move_to_end(workspace_id)
+        self._prune_history()
         for queue in list(self._subscribers.get(workspace_id, set())):
             try:
                 queue.put_nowait(payload)
@@ -57,6 +62,16 @@ class SSEFeed:
 
     def encode(self, event: dict[str, Any]) -> dict[str, str]:
         return {"event": "message", "data": json.dumps(event)}
+
+    def _prune_history(self) -> None:
+        while len(self._history) > self._max_workspaces:
+            removable = next(
+                (workspace_id for workspace_id in self._history if not self._subscribers.get(workspace_id)),
+                None,
+            )
+            if removable is None:
+                return
+            self._history.pop(removable, None)
 
 
 feed = SSEFeed()

@@ -1,23 +1,15 @@
-"""reddit labeled community research
-
-reddit blocks the unauthenticated json search endpoint from many environments
-so this module keeps the old import path while delegating to scrapling's broad
-web/community scraper
-"""
+"""Reddit research through a lightweight, site-scoped web search."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from tools import scrapling_web
+from tools import web_search
 
 
 async def search(query: str, limit: int = 5) -> dict[str, Any]:
-    result = await scrapling_web.search_broad(query, limit)
-    return {**result, "tool": "reddit", "sources": _sources(result)}
-
-
-def _sources(result: dict[str, Any]) -> list[str]:
-    sources = set(result.get("sources") or [])
-    sources.add("reddit")
-    return sorted(sources)
+    result = await web_search.search(f"site:reddit.com {query}", limit)
+    for item in result.get("items", []):
+        item["source"] = "reddit"
+        item["origin"] = "reddit"
+    return {**result, "tool": "reddit", "query": query, "sources": ["reddit"]}

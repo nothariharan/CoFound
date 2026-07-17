@@ -10,6 +10,4 @@ if [ "$py_major" -ne 3 ] || [ "$py_minor" -lt 11 ] || [ "$py_minor" -gt 12 ]; th
   exit 1
 fi
 
-pip install -r requirements.txt
-
-# MCP uses npx at runtime — no global npm install needed on hosted environments.
+pip install --no-cache-dir -r requirements.txt

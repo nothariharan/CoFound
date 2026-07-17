@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { apiUrl } from '@/lib/api'
+import { apiFetch, apiUrl } from '@/lib/api'
 import type { ChatMessage, JournalEntry, OrchestratorChatResult, TodayPriority } from '@/types'
 export interface DialogueResult {
   brief: string
@@ -46,7 +46,7 @@ export function useAgentActions() {
       message: string,
       history?: ChatMessage[],
     ): Promise<OrchestratorChatResult> => {
-      const res = await fetch(apiUrl('/api/orchestrator/chat'), {
+      const res = await apiFetch('/api/orchestrator/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -55,10 +55,6 @@ export function useAgentActions() {
           history: (history ?? []).map((item) => ({ role: item.role, text: item.text })),
         }),
       })
-      if (!res.ok) {
-        const detail = await res.text()
-        throw new Error(detail || 'Failed to reach orchestrator')
-      }
       return res.json()
     },
     [],
@@ -66,12 +62,11 @@ export function useAgentActions() {
 
   const sendDialogue = useCallback(
     async (workspaceId: string, message?: string): Promise<DialogueResult> => {
-      const res = await fetch(apiUrl('/api/agents/dialogue'), {
+      const res = await apiFetch('/api/agents/dialogue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspace_id: workspaceId, message }),
       })
-      if (!res.ok) throw new Error('Failed to get dialogue response')
       return res.json()
     },
     [],
@@ -79,12 +74,11 @@ export function useAgentActions() {
 
   const sendPivot = useCallback(
     async (workspaceId: string, message: string): Promise<PivotResult> => {
-      const res = await fetch(apiUrl('/api/agents/pivot'), {
+      const res = await apiFetch('/api/agents/pivot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspace_id: workspaceId, message }),
       })
-      if (!res.ok) throw new Error('Failed to process pivot')
       return res.json()
     },
     [],

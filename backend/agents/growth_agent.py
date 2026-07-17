@@ -4,8 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from agents.store_protocol import GraphStore
-from mdb_mcp.agent_store import get_agent_store
+from agents.store_protocol import GraphStore, get_store
 from graph.schema import NodeStatus, NodeType, WorkspaceDocument
 from llm.gemini import generate_pro
 
@@ -20,7 +19,7 @@ HANDOFF_NODE_TYPES = {
 
 
 async def recommend_priority(workspace_id: str, store: GraphStore | None = None, observe: dict[str, Any] | None = None) -> dict[str, str]:
-    store = store or get_agent_store()
+    store = store or get_store()
     workspace = await store.get_workspace(workspace_id)
     if workspace is None:
         raise ValueError(f"Workspace not found: {workspace_id}")

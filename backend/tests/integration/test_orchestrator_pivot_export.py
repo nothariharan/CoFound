@@ -95,7 +95,7 @@ def test_growth_priority_uses_lowest_confidence_node(workspace, memory_store, mo
 
     assert "action" in result
     assert result["estimated_time"] == "~2 hrs"
-    assert "Core Idea" in result["reason"] or "core idea" in result["reason"]
+    assert "Audience" in result["reason"] or "audience" in result["reason"]
 
 
 def test_observe_funnel_triggers_growth_when_drop_detected(workspace, memory_store, monkeypatch):

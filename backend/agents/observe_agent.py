@@ -4,14 +4,13 @@ from __future__ import annotations
 from typing import Any
 
 from agents.growth_agent import recommend_priority
-from agents.store_protocol import GraphStore, ResearchTask
-from mdb_mcp.agent_store import get_agent_store
+from agents.store_protocol import GraphStore, ResearchTask, get_store
 from sse.feed import feed
 from tools.posthog_client import get_funnel
 
 
 async def observe_funnel(workspace_id: str, store: GraphStore | None = None, project_id: str | None = None, api_key: str | None = None) -> dict[str, Any]:
-    store = store or get_agent_store()
+    store = store or get_store()
     data = await get_funnel(project_id=project_id, api_key=api_key)
     drops = _detect_drops(data)
     summary = _summary(drops)

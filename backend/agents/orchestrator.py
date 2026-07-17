@@ -9,8 +9,7 @@ from uuid import uuid4
 from agents.dialogue import synthesize_dialogue
 from agents.planner import plan
 from agents.researcher import run_researchers
-from agents.store_protocol import GraphStore, ResearchTask, publish_workspace_update
-from mdb_mcp.agent_store import get_agent_store
+from agents.store_protocol import GraphStore, ResearchTask, get_store, publish_workspace_update
 from graph.schema import CoreIdeaData, CoreIdeaNode, NodeStatus, NodeType, status_from_confidence
 from llm.gemini import generate_pro
 from sse.feed import feed
@@ -28,16 +27,16 @@ async def spawn_research_session(
     workspace_id: str,
     trigger: str = "manual",
     store: GraphStore | None = None,
-    agents_active: int = 2,
+    agents_active: int = 1,
     run_inline: bool = False,
 ) -> OrchestratorResult:
     """read graph → planner tasks → kick researchers → sse the whole way"""
 
-    store = store or get_agent_store()
+    store = store or get_store()
     session_id = str(uuid4())
     # every step publishes to sse so the canvas feels alive
     await feed.publish(workspace_id, {"text": "[Orchestrator] Session started. Reading graph state...", "type": "info"})
-    await feed.publish(workspace_id, {"text": "[MongoDB MCP] Reading workspace via find", "type": "info"})
+    await feed.publish(workspace_id, {"text": "[Workspace] Reading the latest startup graph", "type": "info"})
     workspace = await store.get_workspace(workspace_id)
     if workspace is None:
         await feed.publish(workspace_id, {"text": "[Orchestrator] Workspace not found.", "type": "error"})
@@ -46,10 +45,11 @@ async def spawn_research_session(
     tasks = await plan(workspace, store) if _needs_research(workspace, trigger) else []
     await feed.publish(
         workspace_id,
-        {"text": f"[Planner/ADK] Queued {len(tasks)} research tasks for trigger={trigger}.", "type": "info"},
+        {"text": f"[Planner] Queued {len(tasks)} research tasks for trigger={trigger}.", "type": "info"},
     )
 
-    worker_count = min(max(1, agents_active), max(1, len(tasks))) if tasks else 0
+    # Keep one research loop per small Render instance to bound memory.
+    worker_count = 1 if tasks else 0
     if worker_count:
         coro = _run_and_finalize(workspace_id, store, worker_count, session_id)
         if run_inline:

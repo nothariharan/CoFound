@@ -5,29 +5,30 @@ import asyncio
 import json
 from typing import Any
 
-from agents.store_protocol import GraphStore, ResearchTask
-from mdb_mcp.agent_store import get_agent_store
+from agents.store_protocol import GraphStore, ResearchTask, get_store
 from critique.scorer import score as score_result
 from graph.schema import BaseNode, NodeStatus, NodeType, UnlockConditions, node_agent_id, status_from_confidence
 from llm.gemini import generate_flash
 from sse.feed import feed
-from tools import firecrawl, github_search, reddit_praw, scrapling_web
+from tools import firecrawl, github_search, reddit_praw, web_search
 
 RESEARCH_SYSTEM = """You are a concise research synthesis agent.
 Given raw tool JSON, return a compact evidence summary with customer pains,
 competitors, risks, and recommended graph update. No fluff.
 """
 
+_RESEARCH_GATE = asyncio.Semaphore(1)
 
-async def run_researchers(workspace_id: str, store: GraphStore | None = None, worker_count: int = 2, session_id: str | None = None) -> None:
-    store = store or get_agent_store()
-    workers = [asyncio.create_task(research_loop(workspace_id, store, name=f"R{i+1}")) for i in range(worker_count)]
-    await asyncio.gather(*workers)
-    await feed.publish(workspace_id, {"text": "[Orchestrator] Research session complete.", "type": "done"})
+
+async def run_researchers(workspace_id: str, store: GraphStore | None = None, worker_count: int = 1, session_id: str | None = None) -> None:
+    store = store or get_store()
+    async with _RESEARCH_GATE:
+        await research_loop(workspace_id, store, name="R1")
+        await feed.publish(workspace_id, {"text": "[Orchestrator] Research session complete.", "type": "done"})
 
 
 async def research_loop(workspace_id: str, store: GraphStore | None = None, name: str = "R1") -> None:
-    store = store or get_agent_store()
+    store = store or get_store()
     while True:
         task = await store.pop_pending_task(workspace_id)
         if task is None:
@@ -111,12 +112,12 @@ async def execute_tools(query: str, tools: list[str]) -> list[dict[str, Any]]:
             calls.append((tool, reddit_praw.search(query, limit=5)))
         elif tool == "firecrawl":
             calls.append((tool, firecrawl.search(query, limit=5)))
-        elif tool in {"scrapling", "web"}:
-            calls.append(("scrapling", scrapling_web.search_broad(query, limit=5)))
+        elif tool == "web":
+            calls.append(("web", web_search.search(query, limit=5)))
         elif tool == "github":
             calls.append((tool, github_search.search_repositories(query, limit=5)))
         elif tool in {"exa", "gummysearch"}:
-            calls.append(("scrapling", scrapling_web.search_broad(query, limit=5)))
+            calls.append(("web", web_search.search(query, limit=5)))
         elif tool in {"producthunt", "product_hunt"}:
             calls.append(("firecrawl", firecrawl.search(query, limit=5)))
     if not calls:

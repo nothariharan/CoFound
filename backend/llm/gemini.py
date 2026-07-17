@@ -106,10 +106,14 @@ def _is_rate_limit_error(exc: GeminiError) -> bool:
 
 
 async def generate_pro_resilient(prompt: str, system: str = "") -> str:
-    """generate with pro, falling back to flash then a static message"""
+    """generate with pro, falling back to flash → aws nova → static message"""
 
     key = _api_key()
     if not key:
+        # no Gemini key at all — go straight to AWS if available
+        aws_result = await _try_aws(prompt, system)
+        if aws_result is not None:
+            return aws_result
         return _mock_response(prompt, system, _model("pro"))
     try:
         return await _generate(prompt=prompt, system=system, model=_model("pro"), temperature=0.35)
@@ -118,6 +122,9 @@ async def generate_pro_resilient(prompt: str, system: str = "") -> str:
             try:
                 return await _generate(prompt=prompt, system=system, model=_model("flash"), temperature=0.25)
             except GeminiError:
+                aws_result = await _try_aws(prompt, system)
+                if aws_result is not None:
+                    return aws_result
                 return json.dumps(
                     {
                         "reply": "Done. Check the activity feed for live agent updates.",
@@ -125,6 +132,19 @@ async def generate_pro_resilient(prompt: str, system: str = "") -> str:
                     }
                 )
         raise
+
+
+async def _try_aws(prompt: str, system: str) -> str | None:
+    """attempt aws nova generation; returns None if not configured or on any error"""
+    try:
+        from llm._converse import generate_text as _aws_text, is_configured as _aws_ok
+
+        if not _aws_ok():
+            return None
+        result = await _aws_text(prompt, system=system)
+        return result if result and result.strip() else None
+    except Exception:
+        return None
 
 
 async def _generate(prompt: str, system: str, model: str, temperature: float) -> str:

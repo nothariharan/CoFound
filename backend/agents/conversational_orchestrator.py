@@ -6,10 +6,9 @@ import uuid
 from typing import Any
 
 from agents.orchestrator_tools import TOOL_DECLARATIONS, execute_tool, infer_tool_calls_from_message, tool_summary
-from agents.store_protocol import GraphStore
+from agents.store_protocol import GraphStore, get_store
 from llm.gemini import GeminiError, GeminiToolCall, GeminiToolResult
 from llm.orchestrator_llm import generate_text_resilient, generate_with_tools
-from mdb_mcp.agent_store import get_agent_store
 
 SYSTEM = """You are the CoFounder Orchestrator — the single AI co-founder that coordinates specialist sub-agents on a startup knowledge graph.
 
@@ -53,7 +52,7 @@ async def orchestrator_chat(
     history: list[dict[str, str]] | None = None,
     store: GraphStore | None = None,
 ) -> dict[str, Any]:
-    store = store or get_agent_store()
+    store = store or get_store()
     workspace = await store.get_workspace(workspace_id)
     if workspace is None:
         raise ValueError(f"Workspace not found: {workspace_id}")
